@@ -5152,6 +5152,8 @@
     "delegateExternalAgent": "Delegar {{runner}}",
     "delegateExternalAgentDefault": "Delegar agente externo",
     "shell": "Executar {{command}}",
+    "shellCompleted": "Executado {{command}}",
+    "shellCompletedDefault": "Comando executado",
     "shellDefault": "Executar comando",
     "formatTable": {
       "file": "Arquivo",
