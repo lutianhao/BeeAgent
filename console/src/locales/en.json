@@ -4280,6 +4280,7 @@
     "system": "System"
   },
   "chat": {
+    "quoteFollowUp": "Quote to follow-up",
     "longTextPaste": {
       "title": "Paste long text",
       "asText": "Paste as text",

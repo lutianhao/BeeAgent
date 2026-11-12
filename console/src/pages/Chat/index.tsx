@@ -149,6 +149,7 @@ import { ChatScalar, ChatList } from "../../plugins/registry/slotKeys";
 import { HostResponseCard } from "./HostBubbles";
 import { renderHostUserRequest } from "./HostUserRequest";
 import { unwrapAgentComposerText } from "../../stores/composerDisplay";
+import { QuoteSelection } from "./QuoteSelection";
 import { cancelSdkChatRequest } from "./sdkCancellation";
 import {
   awaitInChatScope,
@@ -4888,6 +4889,11 @@ export default function ChatPage() {
                 </ChatSessionTransition>
               </RichFileReferenceInputProvider>
             </LongTextPasteProvider>
+            <QuoteSelection
+              containerRef={chatMessagesAreaRef}
+              scopeKey={queueKey}
+              enabled={!isSessionTransition && !isAgentTransition}
+            />
           </div>
 
           {/* Rate-limit guidance banner */}
