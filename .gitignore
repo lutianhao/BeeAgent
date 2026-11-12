@@ -170,3 +170,6 @@ docs-site/
 .local-review/
 docs/reviews/
 tmp/
+
+# Local Harness acceptance reports and raw measurements
+/docs/research/harness-*

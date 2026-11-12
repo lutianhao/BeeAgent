@@ -293,8 +293,8 @@ import {
   stopBackgroundWatchersNotInSession,
 } from "../../hooks/useBackgroundTaskWatcher";
 import ApprovalLevelToggle from "./components/ApprovalLevelToggle";
-import HarnessApprovalToggle from "./components/HarnessApprovalToggle";
-import HarnessModelSelector from "./components/HarnessModelSelector";
+import BackendApprovalToggle from "./components/BackendApprovalToggle";
+import BackendModelSelector from "./components/BackendModelSelector";
 import ComposerToolsMenu from "./components/ComposerToolsMenu";
 import { useAgentRunningConfigApprovalLevel } from "../../hooks/useAgentRunningConfigApprovalLevel";
 import { normalizeLevel, type ToolExecutionLevel } from "../../utils/approval";
@@ -314,6 +314,7 @@ import {
 import {
   requiresQwenPawModel,
   supportsAgentAttachments,
+  useBackendCapabilities,
 } from "../../utils/agentBackend";
 
 type ComposerControlId =
@@ -1549,7 +1550,7 @@ export default function ChatPage() {
   >([]);
   const selectedAgentInfo = agents.find((agent) => agent.id === selectedAgent);
   const selectedAgentBackend = selectedAgentInfo?.backend ?? "qwenpaw";
-  const backendCapabilities = selectedAgentInfo?.backend_capabilities;
+  const backendCapabilities = useBackendCapabilities(selectedAgentInfo);
   const usesQwenPawBackend = requiresQwenPawModel(selectedAgentBackend);
   // An Advisor conversation runs two models, so its pill shows the pair.
   const advisorConversation = useIsAdvisorConversation();
@@ -4686,8 +4687,9 @@ export default function ChatPage() {
               </ComposerResponsiveItem>
             ) : backendCapabilities?.model_selection ? (
               <ComposerResponsiveItem id="model">
-                <HarnessModelSelector
-                  providerId={selectedAgentBackend}
+                <BackendModelSelector
+                  backendId={selectedAgentBackend}
+                  capabilities={backendCapabilities}
                   compact={false}
                 />
               </ComposerResponsiveItem>
@@ -4752,7 +4754,7 @@ export default function ChatPage() {
                 </ComposerResponsiveItem>
               ) : approvalPresets.length > 0 ? (
                 <ComposerResponsiveItem id="approval">
-                  <HarnessApprovalToggle
+                  <BackendApprovalToggle
                     backend={selectedAgentBackend}
                     sessionId={queueKey}
                     presets={approvalPresets}
