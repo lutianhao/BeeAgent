@@ -7,6 +7,7 @@ import AmbientLight from "../AmbientLight";
 import Header from "../Header";
 import ConsolePollService from "../../components/ConsolePollService";
 import { AgentStatusPollingController } from "../../components/AgentStatusPollingController";
+import { SessionListPollingController } from "../../components/SessionListPollingController";
 import { ChunkErrorBoundary } from "../../components/ChunkErrorBoundary";
 import { ChunkRecoverySuspense } from "../../components/ChunkRecoverySuspense";
 import { useSyncCodingMode } from "../../stores/useSyncCodingMode";
@@ -19,6 +20,7 @@ import { pickSelectedKey } from "./routeSelection";
 import { RouteDocumentTitle } from "./RouteDocumentTitle";
 import { getRouteTitle } from "./routeTitle";
 import { ConsoleProfileRouteGuard } from "./ConsoleProfileRouteGuard";
+import { getSessionIdFromPath } from "../../utils/sessionRoute";
 import {
   buildApprovalNavigationPath,
   type ApprovalNotificationTarget,
@@ -108,7 +110,15 @@ export default function MainLayout({ hubMode = false }: { hubMode?: boolean }) {
       <Layout className={styles.mainLayout}>
         <SettingsSearchNavigation />
         {hubMode ? <ConsoleProfileRouteGuard /> : null}
-        <RouteDocumentTitle title={pageTitle} />
+        <SessionListPollingController />
+        <RouteDocumentTitle
+          title={pageTitle}
+          sessionId={
+            selectedKey === "core.chat"
+              ? getSessionIdFromPath(currentPath)
+              : undefined
+          }
+        />
         <a
           className={styles.skipLink}
           href="#main-content"
