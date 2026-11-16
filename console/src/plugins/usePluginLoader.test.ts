@@ -2,12 +2,17 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { routeRegistry } from "./registry/store";
+import { loadHostUiDependencies } from "./hostUiDependencies";
 import {
   loadAllPlugins,
   loadPawApp,
   reloadPawApp,
   resetPawAppLoaderForTests,
 } from "./usePluginLoader";
+
+vi.mock("./hostUiDependencies", () => ({
+  loadHostUiDependencies: vi.fn(async () => undefined),
+}));
 
 const originalCreateObjectUrl = URL.createObjectURL;
 const originalRevokeObjectUrl = URL.revokeObjectURL;
@@ -33,6 +38,7 @@ describe("frontend plugin loader", () => {
     resetPawAppLoaderForTests();
     routeRegistry.__resetForTests();
     vi.restoreAllMocks();
+    vi.mocked(loadHostUiDependencies).mockReset().mockResolvedValue(undefined);
     URL.createObjectURL = vi.fn(
       () => `data:text/javascript,${encodeURIComponent("export default true")}`,
     );
@@ -62,6 +68,40 @@ describe("frontend plugin loader", () => {
       failed: [],
     });
     expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(loadHostUiDependencies).toHaveBeenCalledTimes(2);
+  });
+
+  it("waits for shared UI dependencies before evaluating a plugin", async () => {
+    let ready!: () => void;
+    vi.mocked(loadHostUiDependencies).mockReturnValueOnce(
+      new Promise<void>((resolve) => {
+        ready = resolve;
+      }),
+    );
+    vi.spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(jsonResponse([plugin("tools", "frontend")]))
+      .mockResolvedValueOnce(new Response("export default true"));
+
+    const loading = loadAllPlugins();
+    await vi.waitFor(() => expect(loadHostUiDependencies).toHaveBeenCalled());
+    expect(URL.createObjectURL).not.toHaveBeenCalled();
+    ready();
+    await expect(loading).resolves.toEqual({ loaded: 1, failed: [] });
+    expect(URL.createObjectURL).toHaveBeenCalledTimes(1);
+  });
+
+  it("reports preparation failures without evaluating the plugin", async () => {
+    vi.mocked(loadHostUiDependencies).mockRejectedValueOnce(
+      new Error("UI chunk unavailable"),
+    );
+    vi.spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(jsonResponse([plugin("tools", "frontend")]))
+      .mockResolvedValueOnce(new Response("export default true"));
+
+    const summary = await loadAllPlugins();
+    expect(summary.loaded).toBe(0);
+    expect(summary.failed).toEqual(["tools: Error: UI chunk unavailable"]);
+    expect(URL.createObjectURL).not.toHaveBeenCalled();
   });
 
   it("loads a newly installed PawApp and exposes its route immediately", async () => {

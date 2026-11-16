@@ -3,6 +3,7 @@
 import { getApiToken, getApiUrl } from "../api/config";
 import { removePluginRuntime } from "./pluginRuntimeCleanup";
 import { routeRegistry } from "./registry/store";
+import { loadHostUiDependencies } from "./hostUiDependencies";
 
 interface FrontendPluginInfo {
   id: string;
@@ -43,8 +44,12 @@ async function executePluginScript(entryUrl: string): Promise<void> {
     throw new Error(`HTTP ${response.status} for ${entryUrl}`);
   }
 
+  const source = await response.text();
+  // Every startup, PawApp install, and reload evaluates through here.
+  // Keep availability checks after this await: preparation can be slow.
+  await loadHostUiDependencies();
   const blobUrl = URL.createObjectURL(
-    new Blob([await response.text()], { type: "application/javascript" }),
+    new Blob([source], { type: "application/javascript" }),
   );
   try {
     await import(/* @vite-ignore */ blobUrl);

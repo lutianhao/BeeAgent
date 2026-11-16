@@ -15,8 +15,9 @@ import {
 import React from "react";
 import i18n from "../i18n";
 import ReactDOM from "react-dom";
-import * as antd from "antd";
-import * as antdIcons from "@ant-design/icons";
+import type * as antd from "antd";
+import type * as antdIcons from "@ant-design/icons";
+import { getHostUiDependencies } from "./hostUiDependencies";
 import { getApiUrl, getApiToken, getApiBaseUrl } from "../api/config";
 import {
   buildAuditNamespace,
@@ -260,8 +261,12 @@ export function installHostExternals(): void {
     window.QwenPaw.host = {
       React,
       ReactDOM,
-      antd,
-      antdIcons,
+      get antd() {
+        return getHostUiDependencies().antd;
+      },
+      get antdIcons() {
+        return getHostUiDependencies().antdIcons;
+      },
       get apiBaseUrl() {
         return getApiBaseUrl();
       },
