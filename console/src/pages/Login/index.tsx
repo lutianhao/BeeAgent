@@ -166,7 +166,10 @@ export default function LoginPage() {
         alignItems: "center",
         justifyContent: "center",
         overflowY: "auto",
-        padding: "24px 16px",
+        // Keep the centered card clear of the status bar in full-screen
+        // mobile containers (viewport-fit=cover). No-op elsewhere (#8796).
+        padding:
+          "calc(24px + env(safe-area-inset-top, 0px)) 16px calc(24px + env(safe-area-inset-bottom, 0px))",
         background: isDark
           ? "linear-gradient(160deg, #013D9A 0%, #0564D8 45%, #0879F2 100%)"
           : `url(${import.meta.env.BASE_URL}brand/login/bg.svg) center / cover no-repeat, linear-gradient(160deg, #0879F2 0%, #0564D8 50%, #034DBA 100%)`,
