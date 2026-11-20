@@ -95,11 +95,13 @@ export default function HarnessApprovalToggle({
       <ShieldCheck size={13} />
       {!compact && (
         <>
-          {t(
-            `agent.backend.approvalPresets.${selected.id}.name`,
-            selected.name,
-          )}
-          <ChevronDown size={12} />
+          <span data-composer-collapse-content>
+            {t(
+              `agent.backend.approvalPresets.${selected.id}.name`,
+              selected.name,
+            )}
+          </span>
+          <ChevronDown data-composer-collapse-content size={12} />
         </>
       )}
     </button>

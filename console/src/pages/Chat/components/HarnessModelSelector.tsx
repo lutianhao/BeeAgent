@@ -11,6 +11,7 @@ import styles from "./HarnessModelSelector.module.less";
 
 interface HarnessModelSelectorProps {
   providerId: string;
+  compact?: boolean;
 }
 
 interface HarnessModelCatalog {
@@ -20,6 +21,7 @@ interface HarnessModelCatalog {
 
 export default function HarnessModelSelector({
   providerId,
+  compact = false,
 }: HarnessModelSelectorProps) {
   const { t } = useTranslation();
   const { message } = useAppMessage();
@@ -167,10 +169,21 @@ export default function HarnessModelSelector({
       placement="bottomRight"
       classNames={{ root: styles.overlay }}
     >
-      <button type="button" className={styles.trigger}>
+      <button
+        type="button"
+        className={`${styles.trigger} ${compact ? styles.triggerCompact : ""}`}
+        aria-label={selectedLabel}
+        title={compact ? selectedLabel : undefined}
+      >
         <Cpu size={15} />
-        <span>{loading ? t("common.loading") : selectedLabel}</span>
-        <ChevronDown size={14} />
+        {!compact && (
+          <>
+            <span data-composer-collapse-content>
+              {loading ? t("common.loading") : selectedLabel}
+            </span>
+            <ChevronDown data-composer-collapse-content size={14} />
+          </>
+        )}
       </button>
     </Popover>
   );
