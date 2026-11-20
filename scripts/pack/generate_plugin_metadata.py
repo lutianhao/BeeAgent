@@ -8,7 +8,7 @@ Downloads page (it iterates ``mainIndex.products`` regardless of product type).
 Layout produced under ``--dist``::
 
     dist/plugins/
-        bundle/<plugin_id>/<id>-<version>.zip
+        bundle/<plugin_id>/<id>-<version>.zip  (also transcription plugins)
         tool/<plugin_id>/<id>-<version>.zip
         memory/<plugin_id>/<id>-<version>.zip
         apps/<plugin_id>/<id>-<version>.zip
@@ -21,8 +21,9 @@ Each plugin is stored under its own directory on the CDN
 
 Each plugin source tree is full-rebuild zipped: this means deletions in the
 repo propagate through to OSS on the next run (no stale entries left behind).
-Rebuilding the same version overwrites the zip at a stable URL; bump the
-plugin version in ``plugin.json`` when you need a distinct release artifact.
+Local rebuilds may replace a ZIP. Publication checks reject different
+delivered content under the same plugin version; bump ``plugin.json``
+when changing published files.
 
 A plugin can opt out of publishing by setting ``"publish": false`` in its
 ``plugin.json``.
@@ -65,7 +66,20 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-KIND_DIRS = ("bundle", "tool", "memory", "apps", "channel", "hub", "harness")
+KIND_DIRS = (
+    "bundle",
+    "tool",
+    "memory",
+    "apps",
+    "channel",
+    "hub",
+    "harness",
+    "protocol",
+    "transcription",
+)
+# The shared release publisher accepts bundle archives. The catalog still
+# uses the source category so users can find transcription plugins together.
+ARCHIVE_KINDS = {"transcription": "bundle"}
 
 EXCLUDE_PATTERNS = (
     "__pycache__",
@@ -220,6 +234,22 @@ def _sha256_of_file(path: Path) -> str:
         for chunk in iter(lambda: f.read(65536), b""):
             h.update(chunk)
     return h.hexdigest()
+
+
+def content_digest(files) -> str:
+    """Identify delivered paths and bytes, independent of ZIP metadata."""
+    entries = sorted(
+        (name, hashlib.sha256(content).hexdigest()) for name, content in files
+    )
+    payload = json.dumps(entries, ensure_ascii=False, separators=(",", ":"))
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def plugin_content_digest(plugin_dir: Path, manifest: dict) -> str:
+    return content_digest(
+        (relative, (plugin_dir / relative).read_bytes())
+        for relative in _iter_tree_relpaths(plugin_dir, manifest)
+    )
 
 
 def _iter_tree_relpaths(
@@ -721,6 +751,7 @@ def discover_and_pack(
         kind_dir = plugins_root / kind
         if not kind_dir.is_dir():
             continue
+        archive_kind = ARCHIVE_KINDS.get(kind, kind)
         for plugin_dir in sorted(p for p in kind_dir.iterdir() if p.is_dir()):
             manifest = _read_manifest(plugin_dir)
             if manifest is None:
@@ -739,7 +770,7 @@ def discover_and_pack(
                 continue
             version = str(manifest.get("version") or "0.0.0")
             zip_name = f"{plugin_id}-{version}.zip"
-            zip_path = dist_root / kind / plugin_id / zip_name
+            zip_path = dist_root / archive_kind / plugin_id / zip_name
 
             print(
                 f"  + pack {kind}/{plugin_dir.name} -> "
@@ -748,7 +779,7 @@ def discover_and_pack(
             _zip_plugin(plugin_dir, zip_path, manifest)
 
             cdn_path = (
-                f"{cdn_prefix.rstrip('/')}/{kind}/{plugin_id}/{zip_name}"
+                f"{cdn_prefix.rstrip('/')}/{archive_kind}/{plugin_id}/{zip_name}"
             )
             file_id = f"{plugin_id}-{version}"
             metadata = _build_metadata(

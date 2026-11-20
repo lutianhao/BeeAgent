@@ -167,6 +167,7 @@ local-docs/
 docs-site/
 
 # Local review notes
+docs/
 .local-review/
 docs/reviews/
 tmp/
