@@ -5,6 +5,9 @@ import ast
 import importlib.util
 from pathlib import Path
 import runpy
+import shutil
+import tomllib
+from types import SimpleNamespace
 
 import pytest
 
@@ -155,26 +158,97 @@ def test_desktop_spec_collects_reme_entry_point_plugins():
     assert {"reme-ai", *plugin_distributions} <= _metadata_packages()
 
 
+def test_optional_runtimes_stay_out_of_full_and_desktop():
+    from packaging.requirements import Requirement
+
+    project = tomllib.loads((REPO_ROOT / "pyproject.toml").read_text())[
+        "project"
+    ]
+    full = {
+        extra
+        for item in project["optional-dependencies"]["full"]
+        for extra in Requirement(item).extras
+    }
+    assert {"channels", "qwenpaw-data", "hub"} <= full
+    assert not {"local", "whisper", "codex", "qoder"} & full
+    assert (
+        not {
+            "openai-whisper",
+            "openai-codex",
+            "openai-codex-cli-bin",
+            "qoder-agent-sdk",
+        }
+        & _metadata_packages()
+    )
+    tree = ast.parse(SPEC_PATH.read_text(encoding="utf-8"))
+    analysis = next(
+        node
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id == "Analysis"
+    )
+    excluded = {
+        item.value
+        for keyword in analysis.keywords
+        if keyword.arg == "excludes"
+        for item in keyword.value.elts
+        if isinstance(item, ast.Constant)
+    }
+    assert {
+        "whisper",
+        "torch",
+        "openai_codex",
+        "codex_cli_bin",
+        "qoder_agent_sdk",
+    } <= excluded
+
+
+def test_optional_audio_verifier_accepts_shipped_plugin(tmp_path, monkeypatch):
+    """Validate the real adapter files without building desktop executables."""
+    bundle = tmp_path / "bundle"
+    shutil.copytree(
+        REPO_ROOT / WHISPER_SOURCE,
+        bundle / "_internal" / WHISPER_BUNDLE,
+        ignore=shutil.ignore_patterns("__pycache__"),
+    )
+    archive = SimpleNamespace(
+        toc={"PYZ.pyz": None},
+        open_embedded_archive=lambda _name: SimpleNamespace(toc={}),
+    )
+    monkeypatch.setattr(
+        "PyInstaller.archive.readers.CArchiveReader",
+        lambda _path: archive,
+    )
+    verify = runpy.run_path(
+        str(SPEC_PATH.parent / "verify_optional_audio.py"),
+    )["verify"]
+
+    assert verify(bundle)["optional_audio_check"] == "passed"
+
 def test_desktop_spec_reaches_analysis_without_vendor_sdks(
     tmp_path,
     monkeypatch,
 ) -> None:
-    """Run real collectors with a bounded installed full dependency graph."""
+    """Run real collectors with a bounded desktop dependency graph."""
     assert importlib.util.find_spec("qoder_agent_sdk") is None
     assert importlib.util.find_spec("codex_cli_bin") is None
 
-    # The core test environment does not install desktop's full extra. Its
-    # editable metadata may also predate a dependency move to a plugin.
-    # Keep the selected full graph explicit while collecting its installed
-    # transitive distributions through the production metadata collector.
+    # Exercise the production full extra with a small set of installed packages.
+    project = tomllib.loads((REPO_ROOT / "pyproject.toml").read_text("utf-8"))
+    full = project["project"]["optional-dependencies"]["full"]
     metadata = tmp_path / "qwenpaw-0.0.0.dist-info"
     metadata.mkdir()
     (metadata / "METADATA").write_text(
         "Metadata-Version: 2.1\nName: qwenpaw\nVersion: 0.0.0\n"
+        "Provides-Extra: local\n"
         "Provides-Extra: full\n"
         "Requires-Dist: openai; extra == 'full'\n"
         "Requires-Dist: pydantic; extra == 'full'\n"
-        "Requires-Dist: httpx; extra == 'full'\n",
+        "Requires-Dist: modelscope; extra == 'local'\n"
+        "Requires-Dist: modelscope-hub; extra == 'local'\n"
+        "Requires-Dist: httpx; extra == 'full'\n"
+        + "".join(f"Requires-Dist: {dep}; extra == 'full'\n" for dep in full),
         encoding="utf-8",
     )
     monkeypatch.syspath_prepend(str(tmp_path))
@@ -233,6 +307,8 @@ def test_desktop_spec_reaches_analysis_without_vendor_sdks(
     assert host_transitives <= metadata_names
     assert (
         not {
+            "modelscope",
+            "modelscope-hub",
             "openai-codex",
             "codex-cli-bin",
             "qoder-agent-sdk",
