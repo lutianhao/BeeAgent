@@ -19,12 +19,14 @@ logger = logging.getLogger(__name__)
 class GatewayRequest:
     """Keep reservation ownership even when its caller is cancelled."""
 
-    def __init__(self, budgets, catalog):
+    def __init__(self, budgets, catalog, rbac=None):
         self.budgets = budgets
         self.catalog = catalog
+        self.rbac = rbac
         self.stack = AsyncExitStack()
         self.reservation = None
         self.upstream_key = None
+        self._identity = None
         self._closing = None
 
     @property
@@ -44,6 +46,7 @@ class GatewayRequest:
         return self.reservation
 
     async def _reserve(self, identity, model_id, limit, admin_test):
+        self._identity = identity
         try:
             self.reservation = await run_sync_io(
                 self.budgets.reserve,
@@ -53,9 +56,34 @@ class GatewayRequest:
                 limit,
                 admin_test=admin_test,
             )
+            if self.rbac is not None and not admin_test:
+                # Daily token gate after monthly Hub budget admission.
+                request_id, model, _connection, cap = self.reservation
+                reserved = int(model["input_token_limit"]) + int(cap or 0)
+                try:
+                    await run_sync_io(
+                        self.rbac.admit_tokens,
+                        identity["user_id"],
+                        is_hub_admin=self.rbac.lookup_is_hub_admin(
+                            identity["user_id"],
+                        ),
+                        reserved_tokens=reserved,
+                    )
+                except PermissionError:
+                    await run_sync_io(
+                        self.budgets.settle,
+                        request_id,
+                        None,
+                        "daily_token_denied",
+                    )
+                    self.reservation = None
+                    raise
         except BudgetExceededError as exc:
             raise HTTPException(403, "hub_budget_exceeded") from exc
         except PermissionError as exc:
+            detail = str(exc) or "hub_model_unavailable"
+            if "Token" in detail or "chat" in detail or "权限" in detail:
+                raise HTTPException(403, detail) from exc
             raise HTTPException(403, "hub_model_unavailable") from exc
         except ValueError as exc:
             raise HTTPException(422, str(exc)) from exc
@@ -82,6 +110,17 @@ class GatewayRequest:
                     actual,
                     error,
                 )
+                if (
+                    self.rbac is not None
+                    and self._identity is not None
+                    and actual is not None
+                    and int(actual) > 0
+                ):
+                    await run_sync_io(
+                        self.rbac.record_tokens,
+                        self._identity["user_id"],
+                        int(actual),
+                    )
         except Exception:
             # Keep the ledger pending for recovery; never log request content.
             logger.exception(f"Model settlement failed: {self.request_id}")

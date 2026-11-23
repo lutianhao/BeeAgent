@@ -19,14 +19,20 @@ function getSkillMarketTarget(value: string | null): InstallTarget {
 function SkillMarketplace({
   installTarget,
   install,
+  preferredProviders,
 }: {
   installTarget: InstallTarget;
   install: MarketInstallController;
+  preferredProviders?: string[];
 }) {
   return (
     <div className={styles.page}>
       <MarketplaceHeader activeSection="skills" />
-      <MarketPanel installTarget={installTarget} install={install} />
+      <MarketPanel
+        installTarget={installTarget}
+        install={install}
+        preferredProviders={preferredProviders}
+      />
     </div>
   );
 }
@@ -34,8 +40,10 @@ function SkillMarketplace({
 export default function MarketplacePage() {
   const [searchParams] = useSearchParams();
   const tab = searchParams.get("tab");
+  const source = searchParams.get("source");
   const selectedAgent = useAgentStore((state) => state.selectedAgent);
   const install = useMarketInstall({ selectedAgent });
+  const preferredProviders = source ? [source] : undefined;
 
   let content = <AppCenterPage />;
   if (tab === "community") {
@@ -47,6 +55,7 @@ export default function MarketplacePage() {
       <SkillMarketplace
         installTarget={getSkillMarketTarget(searchParams.get("target"))}
         install={install}
+        preferredProviders={preferredProviders}
       />
     );
   }

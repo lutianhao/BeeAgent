@@ -240,7 +240,7 @@ const SETTINGS_GROUPS: SettingsGroupDefinition[] = [
         labelKey: "nav.agents",
         fallback: "Agents",
         descriptionKey: "settingsCenter.descriptions.agents",
-        descriptionFallback: "QwenPaw, Codex and Qoder profiles",
+        descriptionFallback: "小蜜蜂、Codex 和 Qoder 配置",
         routeId: "core.agents",
         Icon: Bot,
       },
@@ -619,7 +619,7 @@ export default function SettingsCenter({
           reason: unavailable
             ? t(
                 "settingsCenter.searchUnsupportedBackend",
-                "Model routing is available for QwenPaw agents.",
+                "Model routing is available for 小蜜蜂 agents.",
               )
             : unavailableReason ?? target.hint,
         };

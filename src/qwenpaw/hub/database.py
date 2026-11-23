@@ -12,6 +12,7 @@ from types import TracebackType
 from typing import Any, Literal
 
 from .config_migration import migrate_hub_settings
+from .rbac.store import ensure_rbac_schema
 
 _SCHEMA_GENERATION = "hub-v1"
 _JSON_DEFAULT = '{"schema_version":1}'
@@ -88,6 +89,14 @@ def initialize_hub_database(database_path: Path) -> None:
             ("registration_default_role", '"user"', utc_now()),
         )
         _validate_schema(connection)
+    # RBAC tables/seed after the Hub transaction commits (executescript
+    # cannot nest inside BEGIN IMMEDIATE).
+    with connect_hub_database(database_path) as connection:
+        ensure_rbac_schema(connection)
+    with connect_hub_database(database_path) as connection:
+        from .org_skills.store import ensure_org_skills_schema
+
+        ensure_org_skills_schema(connection)
     if migrated:
         logging.getLogger(__name__).info(
             "Upgraded legacy Hub registration and model settings",

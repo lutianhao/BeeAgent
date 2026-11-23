@@ -57,6 +57,17 @@ function basenameOf(path: string): string {
   return trimmed.split(/[\\/]/).pop() || trimmed || path;
 }
 
+/** Localize the built-in `default` workspace folder for the trigger label. */
+function displayFolderName(
+  name: string,
+  t: (key: string) => string,
+): string {
+  if (name.toLowerCase() === "default") {
+    return t("projectDirectory.defaultFolderName");
+  }
+  return name;
+}
+
 /** Path compare for the picker — separators normalised, case never folded.
  *
  *  The console does not fold case any more. It used to, using a flag the
@@ -357,7 +368,8 @@ export default function SessionProjectDirectory({
 
   const basename = useMemo(() => {
     const path = info?.project_dir.replace(/[\\/]+$/, "") ?? "";
-    return path.split(/[\\/]/).pop() || path || t("files.workspace");
+    const raw = path.split(/[\\/]/).pop() || path || t("files.workspace");
+    return displayFolderName(raw, t);
   }, [info?.project_dir, t]);
 
   const selectedRecentProject = useMemo(
@@ -940,7 +952,10 @@ export default function SessionProjectDirectory({
                     <Folder size={15} />
                   </span>
                   <span className={styles.boundCopy}>
-                    <strong>{entry.label || basenameOf(entry.path)}</strong>
+                    <strong>
+                      {entry.label ||
+                        displayFolderName(basenameOf(entry.path), t)}
+                    </strong>
                     <small title={entry.path}>{entry.path}</small>
                   </span>
                   {!entry.exists && (

@@ -2,6 +2,8 @@ import type { ReactElement, ReactNode } from "react";
 import { ArrowUpRight, Sparkles } from "lucide-react";
 import styles from "./ChatWelcome.module.less";
 
+const BRAND_MARK = `${import.meta.env.BASE_URL}brand-avatar.gif`;
+
 export function ChatWelcome({
   greeting,
   description,
@@ -18,13 +20,28 @@ export function ChatWelcome({
   )[];
   onSubmit: (data: { query: string }) => void;
 }) {
+  // Prefer composed brand lockup (animated mark + HTML text) so light/dark
+  // themes never show a baked rectangular background from a wide GIF.
+  const brand =
+    typeof avatar === "string" || avatar == null ? (
+      <div className={styles.brand}>
+        <img
+          src={typeof avatar === "string" ? avatar : BRAND_MARK}
+          alt=""
+          className={styles.brandMark}
+        />
+        <div className={styles.brandCopy}>
+          <div className={styles.brandTitle}>小蜜蜂</div>
+          <div className={styles.brandSubtitle}>金融声誉智护平台</div>
+        </div>
+      </div>
+    ) : (
+      avatar
+    );
+
   return (
     <section className={styles.welcome}>
-      {typeof avatar === "string" ? (
-        <img src={avatar} alt="" className={styles.avatar} />
-      ) : (
-        avatar
-      )}
+      {brand}
       <div className={styles.greeting} role="heading" aria-level={2}>
         {greeting}
       </div>

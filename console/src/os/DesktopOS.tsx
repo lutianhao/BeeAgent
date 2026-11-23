@@ -444,8 +444,8 @@ export default function DesktopOS() {
           lowest layer and never intercepts pointer events, so it reads as a
           backdrop behind icons and app windows rather than a card. */}
       <div className={styles.emptyHint}>
-        <img src={`${import.meta.env.BASE_URL}qwenpaw.png`} alt="" />
-        <div className={styles.emptyBrandName}>QwenPaw OS</div>
+        <img src={`${import.meta.env.BASE_URL}brand-welcome.gif`} alt="" />
+        <div className={styles.emptyBrandName}>小蜜蜂 OS</div>
       </div>
 
       {/* Windows layer */}

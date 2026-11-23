@@ -79,9 +79,8 @@ describe("LoginPage", () => {
     const disclaimer = screen.getByText("login.hubDisclaimerTitle")
       .parentElement?.parentElement;
     expect(disclaimer?.querySelector("a")).toBeNull();
-    expect(
-      screen.getByRole("navigation", { name: "login.hubLinks" }),
-    ).toContainElement(screen.getByRole("link", { name: /GitHub/ }));
+    expect(screen.getByRole("navigation", { name: "login.hubLinks" })).toBeTruthy();
+    expect(screen.queryByRole("link", { name: /GitHub/ })).toBeNull();
     const submit = screen.getByRole("button", { name: "login.submit" });
     expect(submit).toBeEnabled();
 
@@ -118,10 +117,7 @@ describe("LoginPage", () => {
         name: "login.hubDisclaimerAccept",
       }),
     ).toBeChecked();
-    expect(screen.getByRole("link", { name: /GitHub/ })).toHaveAttribute(
-      "href",
-      "https://github.com/agentscope-ai/QwenPaw",
-    );
+    expect(screen.queryByRole("link", { name: /GitHub/ })).toBeNull();
   });
 
   it("does not change the standard app login", async () => {

@@ -34,7 +34,7 @@ beforeEach(() => {
   vi.mocked(avatarApi.image).mockResolvedValue(new Blob(["GIF89a"]));
 });
 it("keeps uploaded GIF bytes instead of flattening animation through canvas", async () => {
-  const gif = readFileSync("public/qwenpaw-avatar.gif");
+  const gif = readFileSync("public/brand-avatar.gif");
   const view = render(<LocalAvatarPicker />);
   expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "sidebar.changeAvatar" }));
@@ -47,7 +47,7 @@ it("keeps uploaded GIF bytes instead of flattening animation through canvas", as
     screen
       .getByRole("button", { name: "sidebar.defaultAvatar" })
       .querySelector("img"),
-  ).toHaveAttribute("src", "/qwenpaw/qwenpaw-avatar.gif");
+  ).toHaveAttribute("src", "/qwenpaw/brand-avatar.gif");
   const file = new File([gif], "mascot.gif", { type: "image/gif" });
   fireEvent.change(view.container.querySelector('input[type="file"]')!, {
     target: { files: [file] },

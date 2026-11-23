@@ -9,14 +9,14 @@ export interface ThemePreset {
 export const THEME_PRESETS: readonly ThemePreset[] = [
   {
     id: "qwenpaw",
-    name: "QwenPaw",
+    name: "小蜜蜂",
     theme: {
-      accent: "#ff7f16",
-      accent_hover: "#e96f0b",
-      accent_bg: "rgba(255, 127, 22, 0.1)",
+      accent: "#1668dc",
+      accent_hover: "#0879f2",
+      accent_bg: "rgba(22, 104, 220, 0.1)",
       dark: {
-        accent: "#ff9d4d",
-        accent_bg: "rgba(255, 157, 77, 0.16)",
+        accent: "#4c9aff",
+        accent_bg: "rgba(76, 154, 255, 0.16)",
         surface: "#1f1f1f",
       },
     },

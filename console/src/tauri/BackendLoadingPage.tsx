@@ -49,8 +49,8 @@ export default function BackendLoadingPage({
     <div className={styles.page}>
       <div className={styles.card}>
         <img
-          src={`${import.meta.env.BASE_URL}qwenpaw.png`}
-          alt="QwenPaw"
+          src={`${import.meta.env.BASE_URL}brand-welcome.gif`}
+          alt="小蜜蜂"
           className={styles.logo}
         />
 

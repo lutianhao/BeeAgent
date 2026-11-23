@@ -4,6 +4,8 @@
 from datetime import date, datetime, time, timedelta, timezone
 from zoneinfo import ZoneInfo
 
+from ..runtime_token_usage import usage_detail_rows
+
 
 def usage_details(store, start_date: date, end_date: date):
     """Aggregate metadata only, preserving the ledger's charging semantics."""
@@ -57,4 +59,25 @@ def usage_details(store, start_date: date, end_date: date):
                 group["reserved"] += row["reserved"]
             if row["status"] == "conservative":
                 group["conservative"] += row["charged"]
+        usernames = {
+            str(row["user_id"]): str(row["username"])
+            for row in db.execute(
+                "SELECT user_id, username FROM hub_users "
+                "WHERE deleted_at IS NULL",
+            )
+        }
+        for row in usage_detail_rows(
+            db,
+            start_date=start_date.isoformat(),
+            end_date=end_date.isoformat(),
+            usernames=usernames,
+        ):
+            key = (row["date"], row["user_id"], row["model_id"])
+            existing = groups.get(key)
+            if existing is None:
+                groups[key] = row
+            else:
+                existing["requests"] += int(row["requests"])
+                existing["charged"] += int(row["charged"])
+                existing["actual"] += int(row["actual"])
         return {"timezone": str(zone), "rows": list(groups.values())}

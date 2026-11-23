@@ -11,12 +11,12 @@ const t = ((key: string) => key) as unknown as Parameters<
 
 describe("defaultConfig static shape", () => {
   it("carries the brand theme defaults", () => {
-    expect(defaultConfig.theme.colorPrimary).toBe("#FF7F16");
+    expect(defaultConfig.theme.colorPrimary).toBe("#1668DC");
     expect(defaultConfig.theme.darkMode).toBe(false);
     expect(defaultConfig.theme.prefix).toBe("qwenpaw");
     expect(defaultConfig.theme.leftHeader).toEqual({
       logo: "",
-      title: "Work with QwenPaw",
+      title: "Work with 小蜜蜂",
     });
     expect(defaultConfig.theme.bubbleList.userMessageAnchors.variant).toBe(
       "navigator",
@@ -32,9 +32,9 @@ describe("defaultConfig static shape", () => {
     );
   });
 
-  it("carries the welcome defaults with two prompts and an api stub", () => {
+  it("carries the welcome defaults with prompts and an api stub", () => {
     expect(defaultConfig.welcome.avatar).toBe("/online.svg");
-    expect(defaultConfig.welcome.prompts).toHaveLength(2);
+    expect(defaultConfig.welcome.prompts.length).toBeGreaterThanOrEqual(2);
     expect(defaultConfig.api).toEqual({ baseURL: "", token: "" });
   });
 });
@@ -45,10 +45,12 @@ describe("configProvider i18n accessors", () => {
     expect(configProvider.getDescription(t)).toBe("chat.description");
   });
 
-  it("builds two prompts from the i18n keys", () => {
+  it("builds bank-reputation prompts from the i18n keys", () => {
     expect(configProvider.getPrompts(t)).toEqual([
       { value: "chat.prompt1" },
       { value: "chat.prompt2" },
+      { value: "chat.prompt3" },
+      { value: "chat.prompt4" },
     ]);
   });
 });
@@ -62,10 +64,12 @@ describe("getDefaultConfig", () => {
     expect(cfg.welcome.prompts).toEqual([
       { value: "chat.prompt1" },
       { value: "chat.prompt2" },
+      { value: "chat.prompt3" },
+      { value: "chat.prompt4" },
     ]);
     // Untouched defaults survive the spread.
     expect(cfg.sender).not.toHaveProperty("maxLength");
-    expect(cfg.theme.colorPrimary).toBe("#FF7F16");
+    expect(cfg.theme.colorPrimary).toBe("#1668DC");
     expect(cfg.welcome.avatar).toBe("/online.svg");
     expect(cfg.api).toEqual({ baseURL: "", token: "" });
   });

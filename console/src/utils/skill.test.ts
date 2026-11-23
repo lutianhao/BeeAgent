@@ -155,7 +155,7 @@ describe("getPoolBuiltinStatusTone", () => {
 
 describe("deriveInstalledFromLabel", () => {
   it("maps known install origins to display labels", () => {
-    expect(deriveInstalledFromLabel("qwenpaw")).toBe("QwenPaw");
+    expect(deriveInstalledFromLabel("qwenpaw")).toBe("小蜜蜂");
     expect(deriveInstalledFromLabel("skills-sh")).toBe("skills.sh");
     expect(deriveInstalledFromLabel("github")).toBe("GitHub");
   });

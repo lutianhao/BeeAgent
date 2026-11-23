@@ -221,16 +221,7 @@ export interface HubSettings {
   available_provisioners: string[];
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const token = getApiToken();
-  const response = await fetch(getApiUrl(path), {
-    ...init,
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-      ...init?.headers,
-    },
-  });
+async function handleHubResponse<T>(response: Response): Promise<T> {
   if (response.status === 401) {
     clearAuthToken();
     window.location.assign(
@@ -248,6 +239,32 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   }
   if (response.status === 204) return undefined as T;
   return response.json();
+}
+
+async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const token = getApiToken();
+  const response = await fetch(getApiUrl(path), {
+    ...init,
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+      ...init?.headers,
+    },
+  });
+  return handleHubResponse<T>(response);
+}
+
+/** Multipart upload — do not set Content-Type (browser needs the boundary). */
+async function requestForm<T>(path: string, form: FormData): Promise<T> {
+  const token = getApiToken();
+  const response = await fetch(getApiUrl(path), {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body: form,
+  });
+  return handleHubResponse<T>(response);
 }
 
 function listPath<T extends HubListParams>(path: string, params: T): string {
@@ -348,4 +365,82 @@ export const hubApi = {
   getOverview: () => request<HubOverview>("/hub/admin/overview"),
   listAuditEvents: (params: HubListParams & { action?: string } = {}) =>
     request<HubPage<HubAuditEvent>>(listPath("/hub/admin/audit", params)),
+  listOrgSkills: (mine = false) =>
+    request<{ items: HubOrgSkill[]; official_protected: boolean }>(
+      mine ? "/hub/org-skills?mine=true" : "/hub/org-skills",
+    ),
+  getOrgSkill: (skillId: string) =>
+    request<HubOrgSkillDetail>(`/hub/org-skills/${skillId}`),
+  publishOrgSkill: (body: HubOrgSkillPublishBody) =>
+    request<HubOrgSkill>("/hub/org-skills", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  publishOrgSkillZip: (params: HubOrgSkillZipPublishBody) => {
+    const form = new FormData();
+    form.append("file", params.file);
+    form.append("visibility", params.visibility || "org");
+    if (params.name?.trim()) form.append("name", params.name.trim());
+    if (params.display_name?.trim()) {
+      form.append("display_name", params.display_name.trim());
+    }
+    if (params.description?.trim()) {
+      form.append("description", params.description.trim());
+    }
+    if (params.emoji) form.append("emoji", params.emoji);
+    if (params.version_text) form.append("version_text", params.version_text);
+    return requestForm<HubOrgSkill>("/hub/org-skills/upload", form);
+  },
+  installOrgSkill: (skillId: string) =>
+    request<{ skill_id: string; name: string; installed: boolean }>(
+      `/hub/org-skills/${skillId}/install`,
+      { method: "POST" },
+    ),
+  uninstallOrgSkill: (skillId: string) =>
+    request<{ skill_id: string; name: string; installed: boolean }>(
+      `/hub/org-skills/${skillId}/uninstall`,
+      { method: "POST" },
+    ),
+  deleteOrgSkill: (skillId: string) =>
+    request<void>(`/hub/org-skills/${skillId}`, { method: "DELETE" }),
 };
+
+export interface HubOrgSkill {
+  skill_id: string;
+  name: string;
+  display_name: string;
+  description: string;
+  emoji: string;
+  visibility: "org" | "public";
+  version_text: string;
+  owner_user_id: string;
+  owner_username: string;
+  created_at: string;
+  updated_at: string;
+  installed?: boolean;
+  has_bundle?: boolean;
+}
+
+export interface HubOrgSkillDetail extends HubOrgSkill {
+  content_md: string;
+}
+
+export interface HubOrgSkillPublishBody {
+  name: string;
+  display_name?: string;
+  description?: string;
+  content_md: string;
+  visibility?: "org" | "public";
+  emoji?: string;
+  version_text?: string;
+}
+
+export interface HubOrgSkillZipPublishBody {
+  file: File;
+  visibility?: "org" | "public";
+  name?: string;
+  display_name?: string;
+  description?: string;
+  emoji?: string;
+  version_text?: string;
+}

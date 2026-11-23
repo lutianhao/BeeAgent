@@ -78,9 +78,9 @@ describe("AppBrand", () => {
   it("keeps the shared logo, version, action, and update reminder together", async () => {
     render(<AppBrand action={<button type="button">Collapse</button>} />);
 
-    expect(screen.getByRole("img", { name: "QwenPaw" })).toHaveAttribute(
+    expect(screen.getByRole("img", { name: "小蜜蜂" })).toHaveAttribute(
       "src",
-      "/logo-light.svg",
+      "/logo-light.png",
     );
     expect(screen.getByRole("button", { name: "Collapse" })).toBeVisible();
     const version = await screen.findByText("v1.0.0");
@@ -107,7 +107,7 @@ describe("AppBrand", () => {
     rerender(<AppBrand hidden version="1.2.3" />);
 
     expect(
-      container.querySelector('img[alt="QwenPaw"]')?.closest("div"),
+      container.querySelector('img[alt="小蜜蜂"]')?.closest("div"),
     ).toHaveAttribute("hidden");
     expect(fetch).toHaveBeenCalledTimes(1);
   });

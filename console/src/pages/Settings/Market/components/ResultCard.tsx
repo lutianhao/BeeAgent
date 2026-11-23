@@ -3,6 +3,10 @@ import { Button, Card, Tooltip } from "@agentscope-ai/design";
 import { Download, Eye, Heart, Star } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { MarketResult } from "../../../../api/modules/market";
+import {
+  isBeeagentOrgSource,
+  isOrgSkillInstalled,
+} from "../orgMarketSource";
 import { SkillIcon } from "./SkillIcon";
 import { sourceLabel } from "./skillSources";
 import styles from "./ResultCard.module.less";
@@ -12,6 +16,8 @@ import { skillMarketResource } from "@/utils/communityResources";
 interface ResultCardProps {
   item: MarketResult;
   onInstall: () => void;
+  onUninstall?: () => void;
+  uninstalling?: boolean;
   onOpenDetail: () => void;
 }
 
@@ -35,11 +41,15 @@ const CURSOR_STYLE = { cursor: "pointer" } as const;
 export const ResultCard = memo(function ResultCard({
   item,
   onInstall,
+  onUninstall,
+  uninstalling = false,
   onOpenDetail,
 }: ResultCardProps) {
   const { t } = useTranslation();
   const [hover, setHover] = useState(false);
   const isMobile = useIsMobile();
+  const orgInstalled = isOrgSkillInstalled(item);
+  const isOrg = isBeeagentOrgSource(item.source);
 
   const stats = useMemo(() => {
     const s = item.stats ?? {};
@@ -71,6 +81,12 @@ export const ResultCard = memo(function ResultCard({
     (e: React.MouseEvent | React.KeyboardEvent) => e.stopPropagation(),
     [],
   );
+
+  const primaryLabel = orgInstalled
+    ? t("market.uninstall")
+    : isOrg
+      ? t("market.install")
+      : t("common.save");
 
   return (
     <Card
@@ -114,6 +130,9 @@ export const ResultCard = memo(function ResultCard({
             </span>
           </Tooltip>
         ))}
+        {orgInstalled ? (
+          <span className={styles.statItem}>{t("market.installed")}</span>
+        ) : null}
       </div>
 
       {(hover || isMobile) && (
@@ -123,12 +142,15 @@ export const ResultCard = memo(function ResultCard({
           onKeyDown={stopPropagation}
         >
           <Button
-            type="primary"
+            type={orgInstalled ? "default" : "primary"}
+            danger={orgInstalled}
             size="small"
-            onClick={onInstall}
+            loading={uninstalling}
+            onClick={orgInstalled ? onUninstall : onInstall}
             className={styles.installButton}
+            disabled={orgInstalled && !onUninstall}
           >
-            {t("common.save")}
+            {primaryLabel}
           </Button>
         </div>
       )}

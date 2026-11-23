@@ -1,7 +1,7 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button, Input, Select, Tooltip } from "@agentscope-ai/design";
-import { Button as AntButton } from "antd";
-import { ChevronLeft, ChevronRight, RefreshCw } from "lucide-react";
+import { Button as AntButton, message } from "antd";
+import { ChevronLeft, ChevronRight, RefreshCw, Upload } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useMarketSearch } from "./useMarketSearch";
 import type {
@@ -11,6 +11,12 @@ import type {
 } from "./useMarketInstall";
 import type { MarketResult } from "../../../api/modules/market";
 import { ResultCard, DetailDrawer, QueueItem, EmptyState } from "./components";
+import { PublishOrgSkillModal } from "../../../components/LoopInput/PublishOrgSkillModal";
+import {
+  BEEAGENT_ORG_PROVIDER_KEY,
+  isBeeagentOrgSource,
+  isOrgSkillInstalled,
+} from "./orgMarketSource";
 import styles from "./index.module.less";
 
 function getCardKey(item: MarketResult) {
@@ -237,13 +243,21 @@ function LoadMoreSentinel({ onVisible }: { onVisible: () => void }) {
 export function MarketPanel({
   installTarget,
   install,
+  preferredProviders,
 }: {
   installTarget: InstallTarget;
   install: MarketInstallController;
+  preferredProviders?: string[];
 }) {
   const { t } = useTranslation();
-  const market = useMarketSearch();
+  const market = useMarketSearch({ preferredProviders });
   const [detailItem, setDetailItem] = useState<MarketResult | null>(null);
+  const [publishOpen, setPublishOpen] = useState(false);
+  const [uninstallingKey, setUninstallingKey] = useState<string | null>(null);
+  const showOrgPublish = [...market.selectedProviderKeys].some((key) =>
+    isBeeagentOrgSource(key),
+  );
+  const refreshedInstallIds = useRef(new Set<string>());
 
   useEffect(() => {
     if (
@@ -254,11 +268,55 @@ export function MarketPanel({
     }
   }, [detailItem, market.providers]);
 
+  // Refresh org catalog after a successful personal install so the button flips.
+  useEffect(() => {
+    for (const item of install.queue) {
+      if (
+        item.status === "completed" &&
+        isBeeagentOrgSource(item.result.source) &&
+        !refreshedInstallIds.current.has(item.id)
+      ) {
+        refreshedInstallIds.current.add(item.id);
+        market.refresh();
+        break;
+      }
+    }
+  }, [install.queue, market]);
+
   const onInstall = useCallback(
     (item: MarketResult) => {
       install.enqueue([item], installTarget);
     },
     [install, installTarget],
+  );
+
+  const onUninstall = useCallback(
+    async (item: MarketResult) => {
+      const key = getCardKey(item);
+      setUninstallingKey(key);
+      try {
+        const res = await install.uninstallOrg(item);
+        message.success(
+          t("market.uninstallSuccess", {
+            name: res.name || item.name,
+            defaultValue: "已卸载「{{name}}」",
+          }),
+        );
+        if (detailItem && getCardKey(detailItem) === key) {
+          setDetailItem(null);
+        }
+        market.refresh();
+      } catch (err) {
+        message.error(
+          err instanceof Error
+            ? err.message
+            : t("market.uninstallFailed", { defaultValue: "卸载失败" }),
+        );
+      } finally {
+        setUninstallingKey(null);
+      }
+    },
+    [detailItem, install, market, t],
   );
 
   // Stable callbacks for DetailDrawer
@@ -268,10 +326,14 @@ export function MarketPanel({
   const handleDetailInstall = useCallback(() => {
     const current = detailItemRef.current;
     if (current) {
+      if (isOrgSkillInstalled(current)) {
+        void onUninstall(current);
+        return;
+      }
       onInstall(current);
       setDetailItem(null);
     }
-  }, [onInstall]);
+  }, [onInstall, onUninstall]);
 
   const handleDetailClose = useCallback(() => {
     setDetailItem(null);
@@ -319,6 +381,15 @@ export function MarketPanel({
                 selectedKeys={market.selectedProviderKeys}
                 onSelect={market.setSelectedProviders}
               />
+              {showOrgPublish && (
+                <AntButton
+                  type="default"
+                  icon={<Upload size={14} />}
+                  onClick={() => setPublishOpen(true)}
+                >
+                  {t("chat.skillPicker.orgMarketPublish")}
+                </AntButton>
+              )}
               <AntButton
                 type="default"
                 className={styles.refreshButton}
@@ -381,6 +452,12 @@ export function MarketPanel({
                   key={getCardKey(item)}
                   item={item}
                   onInstall={() => onInstall(item)}
+                  onUninstall={
+                    isBeeagentOrgSource(item.source)
+                      ? () => void onUninstall(item)
+                      : undefined
+                  }
+                  uninstalling={uninstallingKey === getCardKey(item)}
                   onOpenDetail={() => setDetailItem(item)}
                 />
               ))}
@@ -405,9 +482,26 @@ export function MarketPanel({
         )}
       </div>
 
+      <PublishOrgSkillModal
+        open={publishOpen}
+        onClose={() => setPublishOpen(false)}
+        onPublished={() => {
+          market.setSelectedProviders([BEEAGENT_ORG_PROVIDER_KEY]);
+          market.refresh();
+        }}
+      />
+
       <DetailDrawer
         item={detailItem}
         onInstall={handleDetailInstall}
+        onUninstall={
+          detailItem && isBeeagentOrgSource(detailItem.source)
+            ? () => void onUninstall(detailItem)
+            : undefined
+        }
+        uninstalling={
+          detailItem ? uninstallingKey === getCardKey(detailItem) : false
+        }
         onClose={handleDetailClose}
       />
     </div>

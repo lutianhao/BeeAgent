@@ -1,0 +1,130 @@
+.menu {
+  width: min(320px, calc(100vw - 24px));
+}
+
+.list {
+  max-height: min(360px, 50vh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.popover :global(.ant-popover-inner) {
+  max-height: min(420px, 60vh);
+}
+
+/* Match LoopMode / approval pills; only tint the label when a skill is active. */
+.selectedTrigger {
+  color: var(--app-text);
+}
+
+.selectedTrigger > span:first-of-type,
+.selectedLabel {
+  max-width: 7.5em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.createOption {
+  margin-top: 4px;
+  border-top: 1px solid var(--app-border, rgba(0, 0, 0, 0.08));
+  border-radius: 0;
+}
+
+.guideBody {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  color: var(--app-text-secondary, #595959);
+  font-size: 14px;
+  line-height: 1.6;
+
+  p {
+    margin: 0;
+  }
+
+  ol {
+    margin: 0;
+    padding-left: 1.25em;
+  }
+
+  li + li {
+    margin-top: 4px;
+  }
+}
+
+.guideExampleLabel {
+  color: var(--app-text, #1f1f1f);
+  font-weight: 500;
+}
+
+.guideExample {
+  margin: 0;
+  padding: 10px 12px;
+  border-left: 3px solid var(--app-primary, #1668dc);
+  background: var(--app-fill-secondary, rgba(0, 0, 0, 0.04));
+  border-radius: 0 8px 8px 0;
+  color: var(--app-text, #1f1f1f);
+}
+
+.guideFooter {
+  font-size: 13px;
+}
+
+.orgMarketList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: min(52vh, 420px);
+  overflow: auto;
+}
+
+.orgMarketEmpty {
+  padding: 28px 12px;
+  text-align: center;
+  color: var(--app-text-secondary, #8c8c8c);
+}
+
+.orgMarketItem {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--app-border, rgba(0, 0, 0, 0.08));
+  border-radius: 10px;
+}
+
+.orgMarketItemCopy {
+  min-width: 0;
+  flex: 1;
+}
+
+.orgMarketItemTitle {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  color: var(--app-text, #1f1f1f);
+
+  em {
+    font-style: normal;
+    font-size: 12px;
+    color: var(--app-text-secondary, #8c8c8c);
+    padding: 1px 6px;
+    border-radius: 999px;
+    background: var(--app-fill-secondary, rgba(0, 0, 0, 0.04));
+  }
+}
+
+.orgMarketItemMeta {
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--app-text-secondary, #8c8c8c);
+}
+
+.orgMarketItemDesc {
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--app-text-secondary, #595959);
+  line-height: 1.45;
+}

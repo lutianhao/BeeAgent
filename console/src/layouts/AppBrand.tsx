@@ -297,9 +297,9 @@ export default function AppBrand({
           <Slot name="header.logo" kind="replace">
             <img
               src={`${import.meta.env.BASE_URL}${
-                isDark ? "logo-dark.svg" : "logo-light.svg"
+                isDark ? "logo-dark.png" : "logo-light.png"
               }`}
-              alt="QwenPaw"
+              alt="小蜜蜂"
               className={styles.logoImg}
             />
           </Slot>

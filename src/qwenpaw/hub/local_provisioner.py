@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import logging
 import os
 import signal
 import socket
@@ -19,8 +20,14 @@ from dataclasses import replace
 from pathlib import Path
 from typing import IO
 
+_LOG = logging.getLogger(__name__)
+
 from ..utils.http import probe_host_for_bind_host
 from ..utils.runtime_environment import system_environment
+from .beeagent_defaults import (
+    ensure_runtime_defaults,
+    inject_deepseek_env,
+)
 from .credentials import runtime_credential_name_allowed
 from .provisioner import RuntimeProvisioner, RuntimeProvisionerAvailability
 from .models import RuntimeRecord, RuntimeState
@@ -156,6 +163,17 @@ class LocalProcessRuntimeProvisioner(RuntimeProvisioner):
         ):
             path.mkdir(parents=True, exist_ok=True)
 
+        # BeeAgent: seed DeepSeek provider/model before the child boots so new
+        # accounts do not fall back to the Kilo free router.
+        try:
+            ensure_runtime_defaults(record.secret_dir, record.working_dir)
+        except Exception:  # pylint: disable=broad-exception-caught
+            _LOG.warning(
+                "BeeAgent runtime defaults were not applied for %s",
+                record.runtime_id,
+                exc_info=True,
+            )
+
         python = sys.executable
         log_handle = record.log_file.open(
             "a",
@@ -209,6 +227,7 @@ class LocalProcessRuntimeProvisioner(RuntimeProvisioner):
             replace(launch_record, host=runtime_host, port=runtime_port),
             credentials,
         )
+        inject_deepseek_env(environment)
         try:
             isolated = self._isolator.prepare(
                 launch_record,
@@ -252,6 +271,11 @@ class LocalProcessRuntimeProvisioner(RuntimeProvisioner):
                     "",
                 ),
             )
+            # Config/agent.json exist after first boot; re-apply tool defaults.
+            try:
+                ensure_runtime_defaults(record.secret_dir, record.working_dir)
+            except Exception:  # pylint: disable=broad-exception-caught
+                pass
             self.verify_model_connection(starting, isolated.environment)
         except Exception as exc:
             self._terminate(record.runtime_id, process)

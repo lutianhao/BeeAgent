@@ -102,6 +102,8 @@ from .model_service.gateway import ModelGateway
 from .model_service.routes import governance_router
 from .model_service.listener import ModelListener
 from .model_service.runtime_policy import require_model_route
+from .rbac import RbacService, rbac_router
+from .org_skills import OrgSkillsService, org_skills_router
 from . import websocket_proxy
 
 # HTTP semantics for each structured invitation rejection reason. The
@@ -186,7 +188,17 @@ def create_hub_app(  # pylint: disable=too-many-statements
     governance = GovernanceStore(runtime_service.registry.database_path)
     model_catalog = ModelCatalog(governance, credential_vault)
     model_budgets = TokenBudgetService(governance)
-    model_gateway = ModelGateway(model_catalog, model_budgets, model_transport)
+    rbac_service = RbacService(runtime_service.registry.database_path)
+    org_skills_service = OrgSkillsService(
+        runtime_service.registry.database_path,
+    )
+    rbac_service.ensure_schema()
+    model_gateway = ModelGateway(
+        model_catalog,
+        model_budgets,
+        model_transport,
+        rbac=rbac_service,
+    )
     invitations = InvitationService(governance, hub_auth)
     model_listener = ModelListener(governance, model_catalog, model_gateway)
     model_networks: dict[str, RuntimeModelNetwork] = {}
@@ -577,10 +589,25 @@ def create_hub_app(  # pylint: disable=too-many-statements
             record_audit,
         ),
     )
+    app.include_router(
+        rbac_router(
+            rbac_service,
+            require_user,
+            require_admin,
+        ),
+    )
+    app.include_router(
+        org_skills_router(
+            org_skills_service,
+            require_user,
+        ),
+    )
     app.state.model_listener = model_listener
     app.state.model_catalog = model_catalog
     app.state.model_budgets = model_budgets
     app.state.model_gateway = model_gateway
+    app.state.rbac = rbac_service
+    app.state.org_skills = org_skills_service
 
     @app.get("/api/hub/healthz")
     async def healthz(
@@ -1583,6 +1610,19 @@ def create_hub_app(  # pylint: disable=too-many-statements
         )
         return response
 
+    def _is_chat_admit_path(path: str, method: str) -> bool:
+        if method.upper() != "POST":
+            return False
+        normalized = path.strip("/")
+        if normalized in {"console/chat", "console/chat/task"}:
+            return True
+        parts = normalized.split("/")
+        return (
+            len(parts) >= 3
+            and parts[0] == "agents"
+            and parts[2] in {"chats", "chat"}
+        )
+
     @app.api_route(
         "/api/{path:path}",
         methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"],
@@ -1596,6 +1636,19 @@ def create_hub_app(  # pylint: disable=too-many-statements
         require_model_route(path, request.method)
         record = await ensure_personal_runtime(user)
         require_session_runtime(request, record)
+        if _is_chat_admit_path(path, request.method):
+            try:
+                await run_in_threadpool(
+                    app.state.rbac.admit_chat,
+                    user.user_id,
+                    is_hub_admin=user.is_admin,
+                    consume=True,
+                )
+            except PermissionError as exc:
+                raise HTTPException(
+                    status_code=403,
+                    detail=str(exc) or "chat_denied",
+                ) from exc
         target = runtime_url(
             record,
             scheme="http",

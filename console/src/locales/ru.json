@@ -3754,9 +3754,9 @@
   },
   "hub": {
     "brand": {
-      "title": "Управление Hub",
-      "subtitle": "Локальное рабочее пространство",
-      "controlPlane": "Панель управления"
+      "title": "Hub administration",
+      "subtitle": "汇银咨询",
+      "controlPlane": "Control plane"
     },
     "navigation": {
       "workspace": "Рабочая область",
@@ -3765,10 +3765,11 @@
       "users": "Пользователи",
       "credentials": "Учетные данные",
       "audit": "Журнал аудита",
-      "settings": "Системные настройки"
+      "settings": "Системные настройки",
+      "rbac": "Управление доступом"
     },
     "actions": {
-      "backToQwenPaw": "Вернуться к QwenPaw",
+      "backToQwenPaw": "Вернуться к 小蜜蜂",
       "useLightTheme": "Используйте светлую тему",
       "useDarkTheme": "Использовать темную тему",
       "signOut": "Выйти",
@@ -3776,7 +3777,8 @@
       "stop": "Остановить",
       "disable": "Отключить",
       "rebuild": "Пересоздать",
-      "enableAndStart": "Включить и запустить"
+      "enableAndStart": "Включить и запустить",
+      "backToConsole": "Вернуться к 小蜜蜂"
     },
     "roles": {
       "admin": "Администратор",
@@ -4373,12 +4375,72 @@
         "passwordMemberOnly": "Здесь можно сбросить пароль только обычного участника.",
         "connectionDisabled": "Провайдер отключён. Включите переключатель на его карточке перед проверкой или выбором модели по умолчанию."
       }
+    },
+    "rbac": {
+      "title": "Access control",
+      "description": "Assign BeeAgent role templates, or tick Skills/tools per member. Diverging ticks become a custom role.",
+      "tabs": {
+        "members": "Members",
+        "roles": "Roles",
+        "org": "Org defaults"
+      },
+      "selectUser": "Select member",
+      "selectUserHint": "Choose a member to view and edit entitlements.",
+      "assignRoles": "Assigned roles",
+      "saveRoles": "Save roles",
+      "rolesSavedHint": "Roles saved. Re-sync skills (sync-skills) if skill access should update on runtimes.",
+      "dailyQuota": "Daily quota",
+      "inheritOrgDefaults": "Inherit organization defaults",
+      "dailyChatLimit": "Daily chat limit",
+      "dailyTokenLimit": "Daily token limit",
+      "limitHint": "Use -1 for unlimited. Values apply after the next chat or model request.",
+      "saveQuota": "Save quota",
+      "preview": "Effective entitlements",
+      "usageToday": "Usage today",
+      "permissions": "Permissions",
+      "allowedSkills": "Allowed skills",
+      "noSkills": "None",
+      "syncHint": "Skill ACL is enforced on chat admit and after skill sync to runtimes.",
+      "systemRole": "System",
+      "createRole": "Create role",
+      "createRoleHint": "Create reusable templates. Member checkbox edits still generate per-user custom roles when they diverge.",
+      "roleRequired": "Role id and name are required",
+      "roleId": "Role id",
+      "roleName": "Display name",
+      "roleDescription": "Description",
+      "orgDefaults": "Organization defaults",
+      "orgDefaultsHint": "Applied when a member inherits org defaults.",
+      "timezone": "Quota timezone",
+      "currentDefaults": "Current",
+      "unlimited": "Unlimited",
+      "saved": "Saved",
+      "footerNote": "Hub admins always bypass quotas and receive all skills. Ordinary members start with bee.member.",
+      "applyTemplate": "Apply role template",
+      "applyTemplateHint": "Templates quickly fill the checkboxes below. Keep them as reusable presets.",
+      "directAcl": "Skills & tools",
+      "directAclHint": "Check what this member can use. If the selection no longer matches a template, it will be saved as a custom role for this user.",
+      "allowedTools": "Allowed tools",
+      "noTools": "None",
+      "selectAll": "Select all",
+      "clearAll": "Clear",
+      "advancedPerms": "Advanced",
+      "willSaveCustom": "Saving will switch this member to a custom role.",
+      "willSaveTemplate": "Saving will keep template role {{role}}.",
+      "unsaved": "unsaved changes",
+      "saveAcl": "Save access",
+      "aclSavedHint": "Access saved. Run sync-skills if runtime Skill/tool visibility should update now.",
+      "adminLocked": "Hub admins always have full access; member ACL cannot be reduced here.",
+      "customRoleName": "Custom · {{user}}",
+      "customRoleDesc": "Generated from member checkbox overrides",
+      "customRoleTag": "Custom",
+      "customRoleIdReserved": "Role ids starting with custom. are reserved for per-user overrides",
+      "currentRoles": "Assigned roles"
     }
   },
   "login": {
-    "title": "Вход в QwenPaw",
-    "registerTitle": "Создание аккаунта",
-    "firstUserHint": "Создайте учётную запись администратора для начала работы",
+    "title": "Sign in to 小蜜蜂",
+    "registerTitle": "Create 小蜜蜂 account",
+    "firstUserHint": "Create the admin account to get started",
     "usernamePlaceholder": "Имя пользователя",
     "passwordPlaceholder": "Пароль",
     "usernameRequired": "Пожалуйста, введите имя пользователя",

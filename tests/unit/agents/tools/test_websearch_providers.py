@@ -13,6 +13,7 @@ import pytest
 
 from qwenpaw.agents.tools.websearch import (
     AnySearchProvider,
+    DeepSeekProvider,
     FirecrawlProvider,
     SearchProvider,
     TavilyProvider,
@@ -93,6 +94,20 @@ def test_get_search_provider_selects_tavily_explicit(
     assert isinstance(get_search_provider(), TavilyProvider)
 
 
+def test_get_search_provider_selects_deepseek(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        "qwenpaw.agents.tools.websearch.factory.get_current_agent_id",
+        lambda: "default",
+    )
+    monkeypatch.setattr(
+        "qwenpaw.agents.tools.websearch.factory.load_agent_config",
+        lambda agent_id: _agent_config_with_provider("deepseek"),
+    )
+    assert isinstance(get_search_provider(), DeepSeekProvider)
+
+
 def test_get_search_provider_rejects_unknown_value(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -115,6 +130,8 @@ def test_providers_are_search_provider_subclasses() -> None:
     assert TavilyProvider.name == "tavily"
     assert issubclass(FirecrawlProvider, SearchProvider)
     assert FirecrawlProvider.name == "firecrawl"
+    assert issubclass(DeepSeekProvider, SearchProvider)
+    assert DeepSeekProvider.name == "deepseek"
 
 
 @pytest.mark.asyncio

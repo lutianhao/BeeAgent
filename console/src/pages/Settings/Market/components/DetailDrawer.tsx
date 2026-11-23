@@ -2,6 +2,10 @@ import { memo, useMemo } from "react";
 import { Button, Drawer } from "@agentscope-ai/design";
 import { useTranslation } from "react-i18next";
 import type { MarketResult } from "../../../../api/modules/market";
+import {
+  isBeeagentOrgSource,
+  isOrgSkillInstalled,
+} from "../orgMarketSource";
 import { SkillIcon } from "./SkillIcon";
 import { sourceLabel } from "./skillSources";
 import styles from "./DetailDrawer.module.less";
@@ -9,6 +13,8 @@ import styles from "./DetailDrawer.module.less";
 interface DetailDrawerProps {
   item: MarketResult | null;
   onInstall: () => void;
+  onUninstall?: () => void;
+  uninstalling?: boolean;
   onClose: () => void;
 }
 
@@ -34,11 +40,20 @@ function formatStatValue(key: string, value: string | number): string {
 export const DetailDrawer = memo(function DetailDrawer({
   item,
   onInstall,
+  onUninstall,
+  uninstalling = false,
   onClose,
 }: DetailDrawerProps) {
   const { t } = useTranslation();
   const open = !!item;
   const missing = t("market.detail.missing");
+  const orgInstalled = item ? isOrgSkillInstalled(item) : false;
+  const isOrg = item ? isBeeagentOrgSource(item.source) : false;
+  const primaryLabel = orgInstalled
+    ? t("market.uninstall")
+    : isOrg
+      ? t("market.install")
+      : t("common.save");
 
   const rows = useMemo<Array<[string, React.ReactNode]>>(() => {
     if (!item) return [];
@@ -79,8 +94,14 @@ export const DetailDrawer = memo(function DetailDrawer({
       footer={
         item ? (
           <div className={styles.drawerFooter}>
-            <Button type="primary" onClick={onInstall}>
-              {t("common.save")}
+            <Button
+              type={orgInstalled ? "default" : "primary"}
+              danger={orgInstalled}
+              loading={uninstalling}
+              disabled={orgInstalled && !onUninstall}
+              onClick={orgInstalled ? onUninstall : onInstall}
+            >
+              {primaryLabel}
             </Button>
           </div>
         ) : null

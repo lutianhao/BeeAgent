@@ -105,10 +105,13 @@ export default function MenuBar({ hidden = false }: { hidden?: boolean }) {
           <button
             type="button"
             className={styles.menubarBrand}
-            title={t("os.qwenpawMenu", "QwenPaw menu")}
-            aria-label={t("os.qwenpawMenu", "QwenPaw menu")}
+            title={t("os.qwenpawMenu", "小蜜蜂菜单")}
+            aria-label={t("os.qwenpawMenu", "小蜜蜂菜单")}
           >
-            <img src={`${import.meta.env.BASE_URL}qwenpaw.png`} alt="QwenPaw" />
+            <img
+              src={`${import.meta.env.BASE_URL}brand-welcome.gif`}
+              alt="小蜜蜂"
+            />
           </button>
         </Dropdown>
         <Tooltip

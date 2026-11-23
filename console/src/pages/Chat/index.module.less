@@ -24,6 +24,7 @@
     }
 
     [class$="-sender-content-bottom"] {
+      display: flex;
       align-items: center;
       flex-wrap: wrap;
       row-gap: 8px;
@@ -69,26 +70,36 @@
       white-space: nowrap;
     }
 
+    /* Two-row composer toolbar, both rows centered:
+     *  row 1 — voice / attach / loop / model (prefix)
+     *  row 2 — skill / agent / approval / send (actions) */
     [class$="-sender-actions-list"] {
+      display: flex;
       align-items: center;
+      justify-content: center;
       column-gap: 6px;
       min-width: 0;
+      width: 100%;
       max-width: 100%;
-      flex: 0 0 auto;
-      flex-wrap: nowrap;
+      flex: 1 1 100%;
+      flex-wrap: wrap;
       row-gap: 8px;
     }
 
-    // Use the prefix's content width when deciding whether actions fit.
     [class$="-sender-prefix"] {
-      width: auto;
-      flex: 1 1 max-content;
+      width: 100%;
+      flex: 1 1 100%;
       min-width: 0;
       max-width: 100%;
       overflow: visible;
 
       > div {
-        flex-wrap: nowrap;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        width: 100%;
         min-width: 0;
       }
     }
@@ -185,9 +196,11 @@
 
 .senderActionAffix {
   display: inline-flex;
-  flex-wrap: nowrap;
+  flex: 0 1 auto !important;
+  flex-wrap: wrap;
   min-width: 0;
   align-items: center;
+  justify-content: center;
   gap: 6px;
 
   > * {
@@ -205,11 +218,17 @@
 
 /* Desktop sender controls share one height and reserve space for their labels.
  * The project control may give back width; approval stays on one line. */
+.senderSkillControl,
 .senderProjectControl,
 .senderApprovalControl {
   box-sizing: border-box;
   min-height: max(34px, calc(34px * var(--app-font-scale))) !important;
   white-space: nowrap !important;
+}
+
+.senderSkillControl {
+  flex: 0 0 auto !important;
+  max-width: min(160px, 18vw);
 }
 
 .senderProjectControl {
@@ -225,11 +244,12 @@
 @media (min-width: 1000px) {
   .chatMessagesArea.advisorComposer :global {
     [class$="-sender-content-bottom"] {
-      flex-wrap: nowrap;
+      flex-wrap: wrap;
     }
 
     [class$="-sender-prefix"] {
-      flex: 1 1 0;
+      flex: 1 1 100%;
+      width: 100%;
       overflow-x: auto;
       overflow-y: hidden;
       scrollbar-width: none;
@@ -521,6 +541,7 @@
     gap: 4px;
   }
 
+  .senderSkillControl,
   .senderProjectControl,
   .senderApprovalControl {
     min-height: var(--app-icon-button) !important;

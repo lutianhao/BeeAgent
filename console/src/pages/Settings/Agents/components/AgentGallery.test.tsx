@@ -77,7 +77,7 @@ describe("AgentGallery", () => {
         onReorder={vi.fn()}
       />,
     );
-    expect(screen.getByText("QwenPaw")).toBeVisible();
+    expect(screen.getByText("小蜜蜂")).toBeVisible();
     expect(screen.getAllByText("codex").length).toBeGreaterThan(0);
     fireEvent.click(screen.getByRole("button", { name: "agent.pinAgent" }));
     expect(onPin).toHaveBeenLastCalledWith("native", false);

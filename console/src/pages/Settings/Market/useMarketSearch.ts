@@ -9,10 +9,30 @@ import type {
   MarketSearchError,
   MarketSearchResponse,
 } from "../../../api/modules/market";
+import {
+  BEEAGENT_ORG_PROVIDER_KEY,
+  detectHubMode,
+  mergeOrgProvider,
+  searchOrgMarket,
+} from "./orgMarketSource";
 
 const DEBOUNCE_MS = 350;
 const PER_PROVIDER_LIMIT = 10;
 const PROVIDERS_STORAGE_KEY = "qwenpaw-market-providers";
+
+function mergeSearchResponses(
+  parts: MarketSearchResponse[],
+): MarketSearchResponse {
+  const results: MarketResult[] = [];
+  const errors: MarketSearchError[] = [];
+  const by_provider: MarketSearchResponse["by_provider"] = {};
+  for (const part of parts) {
+    results.push(...part.results);
+    errors.push(...part.errors);
+    Object.assign(by_provider, part.by_provider);
+  }
+  return { results, errors, by_provider };
+}
 
 /** Restore the persisted provider selection */
 const resolveInitialProviders = (): Set<string> => {
@@ -58,16 +78,22 @@ function errorMessage(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
 }
 
-export function useMarketSearch(): MarketSearchState {
+export function useMarketSearch(options?: {
+  preferredProviders?: string[];
+}): MarketSearchState {
   const { i18n } = useTranslation();
   const lang = i18n.language || "en";
+  const preferredProviders = options?.preferredProviders;
   const [providers, setProviders] = useState<MarketProviderInfo[]>([]);
   const [providersLoaded, setProvidersLoaded] = useState(false);
   const [providersLoading, setProvidersLoading] = useState(true);
   const providersRef = useRef<MarketProviderInfo[] | null>(null);
   const [catalogVersion, setCatalogVersion] = useState(0);
   const [selectedProviderKeys, setSelectedProviderKeys] = useState<Set<string>>(
-    resolveInitialProviders,
+    () => {
+      if (preferredProviders?.length) return new Set(preferredProviders);
+      return resolveInitialProviders();
+    },
   );
   const [categories, setCategories] = useState<MarketCategory[]>([]);
   const [category, setCategoryState] = useState("");
@@ -114,12 +140,20 @@ export function useMarketSearch(): MarketSearchState {
       const valid = [...prev].filter((key) => enabled.includes(key));
       if (valid.length === prev.size && valid.length > 0) return prev;
       if (valid.length > 0) return new Set(valid);
-      const fallback = enabled.includes("qwenpaw")
-        ? ["qwenpaw"]
-        : enabled.slice(0, 1);
+      if (preferredProviders?.length) {
+        const preferred = preferredProviders.filter((key) =>
+          enabled.includes(key),
+        );
+        if (preferred.length > 0) return new Set(preferred);
+      }
+      const fallback = enabled.includes(BEEAGENT_ORG_PROVIDER_KEY)
+        ? [BEEAGENT_ORG_PROVIDER_KEY]
+        : enabled.includes("qwenpaw")
+          ? ["qwenpaw"]
+          : enabled.slice(0, 1);
       return new Set(fallback);
     });
-  }, [providers, providersLoaded]);
+  }, [providers, providersLoaded, preferredProviders]);
 
   const providersSeqRef = useRef(0);
   const providersRequestRef = useRef(false);
@@ -133,19 +167,19 @@ export function useMarketSearch(): MarketSearchState {
       setGlobalError(null);
       setProvidersLoading(true);
     }
-    marketApi
-      .listMarketProviders()
-      .then((list) => {
+    Promise.all([marketApi.listMarketProviders(), detectHubMode()])
+      .then(([list, hubMode]) => {
         if (seq !== providersSeqRef.current) return;
+        const next = hubMode ? mergeOrgProvider(list) : list;
         const changed =
-          JSON.stringify(list) !== JSON.stringify(providersRef.current);
+          JSON.stringify(next) !== JSON.stringify(providersRef.current);
         if (changed || forceRefresh) {
           ++requestSeqRef.current;
           setCatalogVersion((version) => version + 1);
         }
         if (changed) {
-          providersRef.current = list;
-          setProviders(list);
+          providersRef.current = next;
+          setProviders(next);
         }
         setProvidersLoaded(true);
       })
@@ -285,17 +319,41 @@ export function useMarketSearch(): MarketSearchState {
       loadingRef.current = true;
       setLoading(true);
       setGlobalError(null);
-      marketApi
-        .searchMarket({
-          query: q.trim(),
-          provider_pages: pages,
-          limit: PER_PROVIDER_LIMIT,
-          lang: lng,
-          category: cat || undefined,
-        })
-        .then((resp) => {
+      const remotePages: Record<string, number> = {};
+      let includeOrg = false;
+      for (const [key, page] of Object.entries(pages)) {
+        if (key === BEEAGENT_ORG_PROVIDER_KEY) {
+          // Org catalog is a single page; only fetch on first page.
+          includeOrg = page === 1;
+        } else {
+          remotePages[key] = page;
+        }
+      }
+      const tasks: Promise<MarketSearchResponse>[] = [];
+      if (Object.keys(remotePages).length > 0) {
+        tasks.push(
+          marketApi.searchMarket({
+            query: q.trim(),
+            provider_pages: remotePages,
+            limit: PER_PROVIDER_LIMIT,
+            lang: lng,
+            category: cat || undefined,
+          }),
+        );
+      }
+      if (includeOrg) {
+        tasks.push(searchOrgMarket(q));
+      }
+      if (tasks.length === 0) {
+        applyResponse({ results: [], errors: [], by_provider: {} }, append);
+        loadingRef.current = false;
+        setLoading(false);
+        return;
+      }
+      Promise.all(tasks)
+        .then((parts) => {
           if (seq !== requestSeqRef.current) return;
-          applyResponse(resp, append);
+          applyResponse(mergeSearchResponses(parts), append);
         })
         .catch((err: unknown) => {
           if (seq !== requestSeqRef.current) return;

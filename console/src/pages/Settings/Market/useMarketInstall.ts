@@ -1,8 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import api from "../../../api";
+import { hubApi } from "../../../api/modules/hub";
 import { invalidateSkillCache } from "../../../api/modules/skill";
 import type { MarketResult } from "../../../api/modules/market";
 import { notifySkillChange } from "../../../utils/skillChangeEvents";
+import {
+  isBeeagentOrgSource,
+  parseOrgSkillIdFromUrl,
+} from "./orgMarketSource";
 
 export type InstallTarget = "pool" | "workspace";
 
@@ -129,10 +134,47 @@ export function useMarketInstall(opts: UseMarketInstallOptions) {
     [opts, updateItem],
   );
 
+  const installOrgSkill = useCallback(
+    async (item: InstallQueueItem) => {
+      currentInstallingItemIdRef.current = item.id;
+      try {
+        const skillId =
+          parseOrgSkillIdFromUrl(item.result.source_url) || item.result.slug;
+        const result = await hubApi.installOrgSkill(skillId);
+        if (cancelledRef.current.has(item.id)) {
+          updateItem(item.id, { status: "cancelled", message: "" });
+          return;
+        }
+        const installedName = result.name || item.result.name;
+        invalidateSkillCache({
+          agentId: selectedAgentRef.current,
+          workspaces: true,
+          pool: true,
+        });
+        updateItem(item.id, {
+          status: "completed",
+          installedName,
+          message: installedName,
+        });
+        notifySkillChange(selectedAgentRef.current);
+        opts.onSuccess?.({ ...item, status: "completed" });
+      } finally {
+        if (currentInstallingItemIdRef.current === item.id) {
+          currentInstallingItemIdRef.current = null;
+        }
+      }
+    },
+    [opts, updateItem],
+  );
+
   const installOne = useCallback(
     async (item: InstallQueueItem, overrideName: string | undefined) => {
       updateItem(item.id, { status: "installing", message: "" });
       try {
+        if (isBeeagentOrgSource(item.result.source)) {
+          await installOrgSkill(item);
+          return;
+        }
         if (item.target === "pool") {
           currentInstallingItemIdRef.current = item.id;
           try {
@@ -167,7 +209,7 @@ export function useMarketInstall(opts: UseMarketInstallOptions) {
         opts.onError?.({ ...item, status: "failed" }, err);
       }
     },
-    [installWorkspace, opts, updateItem],
+    [installOrgSkill, installWorkspace, opts, updateItem],
   );
 
   const runQueue = useCallback(async () => {
@@ -240,7 +282,22 @@ export function useMarketInstall(opts: UseMarketInstallOptions) {
     );
   }, [setQueue]);
 
-  return { queue, enqueue, cancel, retry, clearFinished };
+  const uninstallOrg = useCallback(async (result: MarketResult) => {
+    if (!isBeeagentOrgSource(result.source)) {
+      throw new Error("Only org skills support uninstall here");
+    }
+    const skillId = parseOrgSkillIdFromUrl(result.source_url) || result.slug;
+    const res = await hubApi.uninstallOrgSkill(skillId);
+    invalidateSkillCache({
+      agentId: selectedAgentRef.current,
+      workspaces: true,
+      pool: true,
+    });
+    notifySkillChange(selectedAgentRef.current);
+    return res;
+  }, []);
+
+  return { queue, enqueue, cancel, retry, clearFinished, uninstallOrg };
 }
 
 export type MarketInstallController = ReturnType<typeof useMarketInstall>;

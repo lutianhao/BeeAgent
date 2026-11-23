@@ -80,9 +80,29 @@
 .form {
   width: 100%;
   max-width: 600px;
+  display: grid;
+  gap: 14px;
+  label {
+    display: grid;
+    gap: 8px;
+    font-size: 12px;
+    font-weight: 600;
+  }
   :global(.qwenpaw-input-number) {
     width: 100%;
   }
+}
+.inline {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+}
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
 }
 .actions {
   display: flex;

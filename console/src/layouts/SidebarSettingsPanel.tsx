@@ -80,6 +80,8 @@ interface SidebarSettingsPanelProps {
   authEnabled?: boolean;
   onOpenAccount?: () => void;
   onLogout?: () => void;
+  /** Hub deployments should not surface upstream QwenPaw docs/GitHub links. */
+  hubMode?: boolean;
 }
 
 interface FlyoutItemProps {
@@ -201,6 +203,7 @@ export default function SidebarSettingsPanel({
   authEnabled = false,
   onOpenAccount,
   onLogout,
+  hubMode = false,
 }: SidebarSettingsPanelProps) {
   const { t, i18n } = useTranslation();
   const panelRef = useRef<HTMLDivElement>(null);
@@ -447,57 +450,67 @@ export default function SidebarSettingsPanel({
 
       <div className={styles.divider} />
 
-      <button
-        type="button"
-        className={styles.menuItem}
-        onClick={() => openLink(getDocsUrl(i18n.language))}
-      >
-        <BookOpen size={16} />
-        <span>{t("header.tutorial", "Tutorial")}</span>
-      </button>
-      <button
-        type="button"
-        className={styles.menuItem}
-        onClick={() => openLink(getReleaseNotesUrl(i18n.language))}
-      >
-        <FileText size={16} />
-        <span>{t("header.changelog", "Changelog")}</span>
-      </button>
-      <button
-        type="button"
-        className={styles.menuItem}
-        onClick={() => openLink(getFaqUrl(i18n.language))}
-      >
-        <CircleHelp size={16} />
-        <span>{t("header.faq", "FAQ")}</span>
-      </button>
-      <button
-        type="button"
-        className={styles.menuItem}
-        onClick={() => openLink(getFeatureDemosUrl(i18n.language))}
-      >
-        <CirclePlay size={16} />
-        <span>{t("header.featureDemos")}</span>
-      </button>
-      <button
-        type="button"
-        className={styles.menuItem}
-        onClick={() => openLink(GITHUB_URL)}
-      >
-        <Github size={16} />
-        <span>{t("header.github")}</span>
-      </button>
-      <div className={styles.divider} />
-
-      <button
-        type="button"
-        className={styles.menuItem}
-        onClick={() => openLink(QWENPAW_WEBSITE_URL)}
-      >
-        <Info size={16} />
-        <span>{t("sidebar.quickMenu.about", "About QwenPaw")}</span>
-        {version && <span className={styles.menuMeta}>v{version}</span>}
-      </button>
+      {!hubMode && (
+        <>
+          <button
+            type="button"
+            className={styles.menuItem}
+            onClick={() => openLink(getDocsUrl(i18n.language))}
+          >
+            <BookOpen size={16} />
+            <span>{t("header.tutorial", "Tutorial")}</span>
+          </button>
+          <button
+            type="button"
+            className={styles.menuItem}
+            onClick={() => openLink(getReleaseNotesUrl(i18n.language))}
+          >
+            <FileText size={16} />
+            <span>{t("header.changelog", "Changelog")}</span>
+          </button>
+          <button
+            type="button"
+            className={styles.menuItem}
+            onClick={() => openLink(getFaqUrl(i18n.language))}
+          >
+            <CircleHelp size={16} />
+            <span>{t("header.faq", "FAQ")}</span>
+          </button>
+          <button
+            type="button"
+            className={styles.menuItem}
+            onClick={() => openLink(getFeatureDemosUrl(i18n.language))}
+          >
+            <CirclePlay size={16} />
+            <span>{t("header.featureDemos")}</span>
+          </button>
+          <button
+            type="button"
+            className={styles.menuItem}
+            onClick={() => openLink(GITHUB_URL)}
+          >
+            <Github size={16} />
+            <span>{t("header.github")}</span>
+          </button>
+          <div className={styles.divider} />
+          <button
+            type="button"
+            className={styles.menuItem}
+            onClick={() => openLink(QWENPAW_WEBSITE_URL)}
+          >
+            <Info size={16} />
+            <span>{t("sidebar.quickMenu.about", "About BeeAgent")}</span>
+            {version && <span className={styles.menuMeta}>v{version}</span>}
+          </button>
+        </>
+      )}
+      {hubMode && version && (
+        <div className={styles.menuItem} aria-label={t("sidebar.quickMenu.about")}>
+          <Info size={16} />
+          <span>{t("sidebar.quickMenu.about")}</span>
+          <span className={styles.menuMeta}>v{version}</span>
+        </div>
+      )}
 
       {authEnabled && (
         <>

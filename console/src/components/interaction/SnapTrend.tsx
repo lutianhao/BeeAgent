@@ -22,7 +22,7 @@ export function SnapTrend({
   const accent =
     (isDark ? previewTheme.dark?.accent : undefined) ??
     previewTheme.accent ??
-    (isDark ? "#ff9d4d" : "#ff7f16");
+    (isDark ? "#4c9aff" : "#1668dc");
   const chart = useRef<Chart | null>(null);
   const touch = useRef<number | null>(null);
   const [selected, setSelected] = useState<string>();

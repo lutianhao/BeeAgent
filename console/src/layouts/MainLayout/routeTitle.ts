@@ -19,10 +19,10 @@ function titleFromPath(path: string): string | undefined {
 }
 
 export function getRouteTitle(route: TitledRoute | undefined, locale: string) {
-  if (!route) return "QwenPaw";
+  if (!route) return "小蜜蜂";
   return (
     resolveLocalized(route.meta?.title, locale) ??
     titleFromPath(route.path) ??
-    "QwenPaw"
+    "小蜜蜂"
   );
 }

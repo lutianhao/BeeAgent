@@ -143,3 +143,40 @@ export interface UsageDetails {
   timezone: string;
   rows: UsageDetailRow[];
 }
+
+export interface RbacRole {
+  role_id: string;
+  name: string;
+  description: string;
+  is_system: boolean;
+  permissions: string[];
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface RbacOrgDefaults {
+  daily_chat_limit: number;
+  daily_token_limit: number;
+  timezone: string;
+}
+
+export interface RbacEntitlements {
+  user_id: string;
+  is_hub_admin: boolean;
+  roles: string[];
+  permissions: string[];
+  allowed_skills: string[];
+  allowed_tools: string[];
+  quota: {
+    daily_chat_limit: number;
+    daily_token_limit: number;
+    timezone: string;
+    inherit_org_defaults: boolean;
+    bypass: boolean;
+  };
+  usage_today: {
+    chat_count: number;
+    token_count: number;
+  };
+  usage_date: string;
+}

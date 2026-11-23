@@ -111,10 +111,11 @@ def _error_response(exc, attempt):
 class ModelGateway:
     """Keep upstream keys, request attribution, and settlement in Hub."""
 
-    def __init__(self, catalog, budgets, transport=None):
+    def __init__(self, catalog, budgets, transport=None, rbac=None):
         self.catalog = catalog
         self.budgets = budgets
         self.transport = transport
+        self.rbac = rbac
         self.limiter = SharedLimiter(catalog.store)
 
     def recover(self):
@@ -250,7 +251,7 @@ class ModelGateway:
         session_id=None,
     ):
         """Reserve once and transfer resource ownership to the response."""
-        attempt = GatewayRequest(self.budgets, self.catalog)
+        attempt = GatewayRequest(self.budgets, self.catalog, rbac=self.rbac)
         try:
             _, model, connection, cap = await attempt.reserve(
                 identity,

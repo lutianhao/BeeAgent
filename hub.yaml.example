@@ -1,0 +1,14 @@
+version: 1
+
+control_plane:
+  # Replace with your Hub public URL
+  public_base_url: http://127.0.0.1:8100
+  registration:
+    mode: closed
+    default_role: user
+
+runtime:
+  provisioner: local
+
+capacity:
+  max_running_runtimes: 20

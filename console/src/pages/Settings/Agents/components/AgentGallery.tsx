@@ -96,7 +96,7 @@ const AgentTile = memo(function AgentTile({
             status={agent.startup_status}
             enabled={agent.enabled}
           />
-          <span>{agent.backend === "qwenpaw" ? "QwenPaw" : agent.backend}</span>
+          <span>{agent.backend === "qwenpaw" ? "小蜜蜂" : agent.backend}</span>
           <Button
             type="text"
             aria-label={t(agent.pinned ? "agent.unpinAgent" : "agent.pinAgent")}

@@ -4,9 +4,11 @@
 """Web search and fetch tools.
 
 web_search delegates to a pluggable search provider (AnySearch by
-default, Tavily or Firecrawl when the per-agent Console config
-selects them).
-web_fetch uses direct HTTP GET + a stdlib HTML-to-Markdown converter.
+default; Tavily, Firecrawl, or DeepSeek when the per-agent Console
+config selects them).
+web_fetch uses DeepSeek Fetch when the search provider is
+``deepseek``; otherwise it uses direct HTTP GET + a stdlib
+HTML-to-Markdown converter.
 """
 
 import logging
@@ -23,14 +25,19 @@ from agentscope.message import ToolResultState
 
 from ...runtime.tool_registry import tool_descriptor
 from ._html_to_markdown import html_to_markdown
-from .websearch import format_search_results, get_search_provider
+from .websearch import (
+    deepseek_fetch,
+    format_search_results,
+    get_search_provider,
+    get_search_provider_name,
+)
 
 logger = logging.getLogger(__name__)
 
 _DEFAULT_TIMEOUT = 30
 
 _SEARCH_FALLBACK_HINT = (
-    "This tool uses a free API with rate limits. "
+    "This tool uses a search API with rate limits. "
     "Try again later, or fall back to "
     "execute_shell_command with curl as a last resort."
 )
@@ -243,8 +250,11 @@ async def web_fetch(url: str) -> ToolChunk:
         )
 
     try:
-        raw_html = await _fetch_html(target)
-        text = _html_to_text(raw_html)
+        if get_search_provider_name() == "deepseek":
+            text = await deepseek_fetch(target)
+        else:
+            raw_html = await _fetch_html(target)
+            text = _html_to_text(raw_html)
         if not text:
             text = "No content extracted from the page."
         return ToolChunk(

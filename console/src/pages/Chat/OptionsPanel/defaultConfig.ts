@@ -4,12 +4,12 @@ const defaultConfig = {
   theme: {
     // The upstream chat theme generator parses this value as a HEX color.
     // Runtime theme colors are normalized before they are passed to it.
-    colorPrimary: "#FF7F16",
+    colorPrimary: "#1668DC",
     darkMode: false,
     prefix: "qwenpaw",
     leftHeader: {
       logo: "",
-      title: "Work with QwenPaw",
+      title: "Work with 小蜜蜂",
     },
     bubbleList: {
       userMessageAnchors: {
@@ -24,16 +24,27 @@ const defaultConfig = {
     disclaimer: "Works for you, grows with you",
   },
   welcome: {
-    greeting: "Hello, how can I help you today?",
+    greeting:
+      "Which bank reputation or public-opinion matter should we handle today?",
     description:
-      "I am a helpful assistant that can help you with your questions.",
+      "A reputation-risk assistant for banks and financial institutions.",
     avatar: `${import.meta.env.BASE_URL}online.svg`,
     prompts: [
       {
-        value: "Let's start a new journey!",
+        value:
+          "Assess the risk level and response options for this bank-related negative coverage",
       },
       {
-        value: "Can you tell me what skills you have?",
+        value:
+          "Draft external talking points for a customer-complaint reputation issue",
+      },
+      {
+        value:
+          "Write multi-role online comment scripts to cool down public opinion",
+      },
+      {
+        value:
+          "Using the “Public opinion assessment” skill as a reference, create a personal Skill for fast branch-complaint response that I can iterate on later",
       },
     ],
   },
@@ -53,7 +64,12 @@ class ChatConfigProvider {
   }
 
   getPrompts(t: TFunction): Array<{ value: string }> {
-    return [{ value: t("chat.prompt1") }, { value: t("chat.prompt2") }];
+    return [
+      { value: t("chat.prompt1") },
+      { value: t("chat.prompt2") },
+      { value: t("chat.prompt3") },
+      { value: t("chat.prompt4") },
+    ];
   }
 
   getConfig(t: TFunction) {

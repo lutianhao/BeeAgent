@@ -88,9 +88,10 @@ import {
   prepareLoopModeMessage,
   useLoopStore,
 } from "../../stores/loopStore";
+import { prepareSkillMessage } from "../../stores/skillPickerStore";
 import { buildLoopSlashSuggestions } from "./loopSlashSuggestions";
 import { InlineMarkdown } from "../../components/Markdown/InlineMarkdown";
-import { LoopModeSelector } from "../../components/LoopInput";
+import { LoopModeSelector, SkillPicker } from "../../components/LoopInput";
 import { useChatAnywhereInput } from "@agentscope-ai/chat";
 import { useChatAnywhereI18n } from "@agentscope-ai/chat/lib/AgentScopeRuntimeWebUI/core/Context/ChatAnywhereI18nContext";
 import styles from "./index.module.less";
@@ -2034,6 +2035,25 @@ export default function ChatPage() {
     [chatSkills],
   );
 
+  const reloadChatSkills = useCallback(() => {
+    if (!usesQwenPawBackend) {
+      setChatSkills([]);
+      return;
+    }
+    skillApi
+      .listSkills(selectedAgent)
+      .then((skills) => {
+        setChatSkills(Array.isArray(skills) ? skills : []);
+      })
+      .catch((error) => {
+        console.warn("[ChatSkills] failed to load slash skills", {
+          selectedAgent,
+          error,
+        });
+        setChatSkills([]);
+      });
+  }, [selectedAgent, usesQwenPawBackend]);
+
   useEffect(() => {
     if (!usesQwenPawBackend) {
       setChatSkills([]);
@@ -2476,7 +2496,9 @@ export default function ChatPage() {
         queueKey,
         resolveIdentity: (id) => sessionApi.getSessionIdentity(id),
         prepareQuery: (query) =>
-          usesQwenPawBackend ? prepareLoopModeMessage(query) : query,
+          usesQwenPawBackend
+            ? prepareLoopModeMessage(prepareSkillMessage(query))
+            : query,
         requestContext: captureRequestContext(),
         queueFullMessage: t("chat.queue.queueFull", { max: MAX_QUEUE_SIZE }),
         staleMessage: t("chat.pluginSubmission.staleConversation"),
@@ -2524,7 +2546,7 @@ export default function ChatPage() {
         message.warning(t("chat.queue.queueFull", { max: MAX_QUEUE_SIZE }));
         return;
       }
-      const queueText = prepareLoopModeMessage(val);
+      const queueText = prepareLoopModeMessage(prepareSkillMessage(val));
       const enqueueIdentity = sessionApi.getSessionIdentity(
         queueSessionId === "new" ? "" : queueSessionId,
       );
@@ -3699,7 +3721,7 @@ export default function ChatPage() {
           return false;
         }
         const queueText = usesQwenPawBackend
-          ? prepareLoopModeMessage(val)
+          ? prepareLoopModeMessage(prepareSkillMessage(val))
           : val;
         useMessageQueueStore.getState().enqueue(queueKey, {
           text: queueText,
@@ -3736,7 +3758,7 @@ export default function ChatPage() {
       }
 
       const prepared = usesQwenPawBackend
-        ? beginLoopModeSubmission(data.query)
+        ? beginLoopModeSubmission(prepareSkillMessage(data.query))
         : data.query;
       // Consume this submission before model lookup, session allocation or
       // transport. Preserve any draft and files added during the status check.
@@ -3802,7 +3824,7 @@ export default function ChatPage() {
       isDark
         ? previewTheme.dark?.accent ?? previewTheme.accent
         : previewTheme.accent,
-      defaultConfig.theme.colorPrimary ?? "#FF7F16",
+      defaultConfig.theme.colorPrimary ?? "#1668DC",
     );
     const colorPrimary = toChatThemeHex(
       extColorPrimary,
@@ -4057,8 +4079,10 @@ export default function ChatPage() {
       },
       welcome: {
         ...i18nConfig.welcome,
-        nick: extNick ?? "QwenPaw",
-        avatar: extAvatar ?? `${import.meta.env.BASE_URL}qwenpaw.png`,
+        nick: extNick ?? "小蜜蜂",
+        // Square animated mark (also used by assistant bubbles). Welcome
+        // screen composes title/subtitle in ChatWelcome — avoid wide GIF boxes.
+        avatar: extAvatar ?? `${import.meta.env.BASE_URL}brand-avatar.gif`,
         ...(extGreeting !== undefined ? { greeting: extGreeting } : {}),
         ...(extDescription !== undefined
           ? { description: extDescription }
@@ -4154,6 +4178,21 @@ export default function ChatPage() {
                   onNew={handleNewCommand}
                 />
               </span>
+            )}
+            {usesQwenPawBackend && (
+              <SkillPicker
+                skills={consoleSkills}
+                onSkillsChanged={reloadChatSkills}
+                className={[
+                  !isMobile && !compactSender
+                    ? styles.senderSkillControl
+                    : "",
+                  isMobile || compactSender ? styles.mobileComposerControl : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+                compact={isMobile || compactSender}
+              />
             )}
             {usesQwenPawBackend && !isSessionTransition && (
               <SessionProjectDirectory

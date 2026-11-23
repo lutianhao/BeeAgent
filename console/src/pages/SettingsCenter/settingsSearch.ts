@@ -338,7 +338,7 @@ const SETTINGS_SEARCH_ALIASES: Record<string, string> = {
   "runtimeDesign.memory": "长期记忆配置 Long-term Memory Config",
   "models.maxInputLengthLabel": "最大输入长度 Max Input Length context window",
   "environments.liveSettings":
-    "QwenPaw 已知配置 QwenPaw settings known settings",
+    "小蜜蜂 已知配置 BeeAgent settings known settings",
   "mcp.form.transport": "Stdio Streamable HTTP SSE",
   "acp.env": "客户端环境变量 client environment variables",
   "cronJobs.scheduleTimezone": "调度时区 任务时区 schedule timezone",

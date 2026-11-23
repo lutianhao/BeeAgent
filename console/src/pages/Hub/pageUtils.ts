@@ -5,6 +5,7 @@ export type Section =
   | "overview"
   | "runtimes"
   | "users"
+  | "rbac"
   | "credentials"
   | "audit"
   | "settings";

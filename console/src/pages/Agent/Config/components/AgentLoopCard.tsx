@@ -958,7 +958,7 @@ function GateParamsEditor({
         )}
         extra={t(
           "agentConfig.loopMode.completionPromptHelp",
-          "Describe when the result is complete. QwenPaw automatically injects the completion-signal output instruction.",
+          "Describe when the result is complete. 小蜜蜂 automatically injects the completion-signal output instruction.",
         )}
       >
         <Input.TextArea autoSize={{ minRows: 3, maxRows: 7 }} />
@@ -972,7 +972,7 @@ function GateParamsEditor({
           )}
           tooltip={t(
             "agentConfig.loopMode.completionSignalHelp",
-            "QwenPaw injects this signal into the check prompt and instructs the agent to output only it. Matching is exact after trimming whitespace and ignoring case.",
+            "小蜜蜂 injects this signal into the check prompt and instructs the agent to output only it. Matching is exact after trimming whitespace and ignoring case.",
           )}
         >
           <Input maxLength={64} />
@@ -1161,7 +1161,7 @@ function CustomModeEditor({
           <p>
             {t(
               "agentConfig.loopMode.customDescription",
-              "Build a saved pipeline from QwenPaw-owned gates.",
+              "Build a saved pipeline from 小蜜蜂-owned gates.",
             )}
           </p>
         </div>

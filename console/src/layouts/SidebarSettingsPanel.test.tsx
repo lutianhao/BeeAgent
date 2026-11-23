@@ -68,7 +68,7 @@ describe("SidebarSettingsPanel", () => {
     expect(onOpenSettings).toHaveBeenCalledOnce();
 
     await userEvent.click(
-      screen.getByRole("button", { name: /About QwenPaw/ }),
+      screen.getByRole("button", { name: /About BeeAgent/ }),
     );
     expect(mocks.openExternalLink).toHaveBeenCalledWith(
       "https://qwenpaw.agentscope.io/",

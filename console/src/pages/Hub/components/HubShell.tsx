@@ -43,6 +43,7 @@ export default function HubShell(props: Props) {
     "overview",
     "runtimes",
     "users",
+    "rbac",
     "models",
     "credentials",
     "audit",
@@ -67,15 +68,15 @@ export default function HubShell(props: Props) {
         </span>
         <div>
           <strong>
-            QwenPaw <b>Hub</b>
+            小蜜蜂 <b>Hub</b>
           </strong>
           <small>{t("hub.brand.controlPlane")}</small>
         </div>
       </div>
       <div className={styles.workspace}>
-        <span className={styles.workspaceMark}>Q</span>
+        <span className={styles.workspaceMark}>蜂</span>
         <span>
-          QwenPaw<small>{t("hub.overview.localIsolation")}</small>
+          汇银咨询<small>{t("hub.overview.localIsolation")}</small>
         </span>
       </div>
       <nav
@@ -113,7 +114,7 @@ export default function HubShell(props: Props) {
           onClick={() => window.location.assign("/")}
         >
           <House size={17} />
-          {t("hub.actions.backToQwenPaw")}
+          {t("hub.actions.backToConsole")}
         </button>
         <div className={styles.account}>
           <span className={styles.avatar}>

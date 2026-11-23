@@ -3,14 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button, Checkbox, Form, Input, Modal } from "antd";
 import { useAppMessage } from "../../hooks/useAppMessage";
-import {
-  Github,
-  Globe2,
-  Languages,
-  LockKeyhole,
-  ShieldAlert,
-  UserRound,
-} from "lucide-react";
+import { Languages, LockKeyhole, ShieldAlert, UserRound } from "lucide-react";
 import { authApi } from "../../api/modules/auth";
 import { setAuthToken } from "../../api/config";
 import { useTheme } from "../../contexts/ThemeContext";
@@ -175,8 +168,8 @@ export default function LoginPage() {
         overflowY: "auto",
         padding: "24px 16px",
         background: isDark
-          ? "linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%)"
-          : "linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)",
+          ? "linear-gradient(160deg, #013D9A 0%, #0564D8 45%, #0879F2 100%)"
+          : `url(${import.meta.env.BASE_URL}brand/login/bg.svg) center / cover no-repeat, linear-gradient(160deg, #0879F2 0%, #0564D8 50%, #034DBA 100%)`,
       }}
     >
       <div
@@ -192,9 +185,9 @@ export default function LoginPage() {
         <div style={{ textAlign: "center", marginBottom: 32 }}>
           <img
             src={`${import.meta.env.BASE_URL}${
-              isDark ? "logo-dark.svg" : "logo-light.svg"
+              isDark ? "logo-dark.png" : "logo-light.png"
             }`}
-            alt="QwenPaw"
+            alt="小蜜蜂"
             style={{ height: 48, marginBottom: 12 }}
           />
           <h2 className={styles.loginTitle}>
@@ -310,24 +303,6 @@ export default function LoginPage() {
         )}
         {isHub && (
           <nav className={styles.hubLinks} aria-label={t("login.hubLinks")}>
-            <a
-              href="https://github.com/agentscope-ai/QwenPaw"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <Github size={14} strokeWidth={1.8} aria-hidden="true" />
-              GitHub
-            </a>
-            <span aria-hidden="true" />
-            <a
-              href="https://qwenpaw.agentscope.io/"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <Globe2 size={14} strokeWidth={1.8} aria-hidden="true" />
-              {t("login.officialWebsite")}
-            </a>
-            <span aria-hidden="true" />
             <button
               type="button"
               aria-label={t("login.switchLanguage")}

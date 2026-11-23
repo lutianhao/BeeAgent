@@ -9,6 +9,10 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 
 from ..database import utc_now
+from ..runtime_token_usage import (
+    daily_totals_for_period,
+    period_totals_for_user,
+)
 
 
 class BudgetExceededError(ValueError):
@@ -57,8 +61,29 @@ class TokenBudgetService:
         ).fetchone()
         limit = self.limit(db, subject)
         result = dict(row)
+        # Personal runtimes may call providers directly; fold in local
+        # token_usage.json so admin member stats are not stuck at 0.
+        if subject == "organization":
+            runtime_charged = 0
+            runtime_requests = 0
+            for user in db.execute(
+                "SELECT user_id FROM hub_users WHERE deleted_at IS NULL",
+            ):
+                rt = period_totals_for_user(db, user["user_id"], period)
+                runtime_charged += int(rt["charged"])
+                runtime_requests += int(rt["requests"])
+        else:
+            rt = period_totals_for_user(db, subject, period)
+            runtime_charged = int(rt["charged"])
+            runtime_requests = int(rt["requests"])
+        charged = int(result["charged"]) + runtime_charged
+        actual = int(result["actual"]) + runtime_charged
+        requests = int(result["requests"]) + runtime_requests
         result.update(
             {
+                "charged": charged,
+                "actual": actual,
+                "requests": requests,
                 "subject": subject,
                 "period": period,
                 "token_limit": limit,
@@ -66,7 +91,7 @@ class TokenBudgetService:
                 if limit is None
                 else max(
                     0,
-                    limit - row["charged"] - row["reserved"],
+                    limit - charged - int(result["reserved"]),
                 ),
             },
         )
@@ -297,6 +322,8 @@ class TokenBudgetService:
                 day = datetime.fromisoformat(row["created_at"])
                 label = day.astimezone(zone).date().isoformat()
                 daily[label] = daily.get(label, 0) + row["charged"]
+            for label, tokens in daily_totals_for_period(db, period).items():
+                daily[label] = daily.get(label, 0) + tokens
             return {
                 "timezone": str(zone),
                 "daily": [

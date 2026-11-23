@@ -1097,6 +1097,7 @@ export default function Sidebar({
               >
                 <SidebarSettingsPanel
                   version={version}
+                  hubMode={hubMode}
                   onClose={() => setSettingsOpen(false)}
                   onOpenDesktopMode={handleOpenDesktopMode}
                   onOpenSettings={handleOpenSettings}
@@ -1122,7 +1123,7 @@ export default function Sidebar({
               ) : (
                 <>
                   <span className={skin.avatar}>
-                    <img src={localAvatar ?? DEFAULT_AVATAR} alt="QwenPaw" />
+                    <img src={localAvatar ?? DEFAULT_AVATAR} alt="小蜜蜂" />
                   </span>
                   <span className={skin.identityText}>
                     <strong>
@@ -1130,7 +1131,7 @@ export default function Sidebar({
                     </strong>
                     <small>
                       {hubUsername
-                        ? "QwenPaw Hub"
+                        ? "小蜜蜂 Hub"
                         : authEnabled
                         ? t("sidebar.consoleAccount")
                         : t("sidebar.localMode")}

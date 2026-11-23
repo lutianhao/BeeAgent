@@ -106,7 +106,7 @@ export function getAppThemeToken(
     colorPrimary:
       userTheme.dark?.accent && isDark
         ? userTheme.dark.accent
-        : userTheme.accent ?? (isDark ? "#FF9D4D" : "#FF7F16"),
+        : userTheme.accent ?? (isDark ? "#4C9AFF" : "#1668DC"),
     borderRadius: 10,
     borderRadiusLG: 16,
     fontFamily:

@@ -66,6 +66,8 @@ __pycache__/
 *.egg-info/
 *.zip
 config.json
+# Local Hub runtime config (copy from hub.yaml.example)
+hub.yaml
 
 # IDEs and editors
 .idea/

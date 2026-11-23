@@ -77,7 +77,7 @@ function LoadingAvatar({ active }: { active: boolean }) {
     <div className={styles.avatar} aria-hidden="true">
       <img
         ref={image}
-        src={`${import.meta.env.BASE_URL}qwenpaw.png`}
+        src={`${import.meta.env.BASE_URL}brand-welcome.gif`}
         alt=""
         width={88}
         height={88}
@@ -189,7 +189,7 @@ function DesktopContent({
   const connection = (
     <section className={styles.connection} aria-live="polite">
       <LoadingAvatar active={!failed} />
-      <h1>QwenPaw</h1>
+      <h1>小蜜蜂</h1>
       <p className={styles.hint}>{status}</p>
       {(host.error || error) && (
         <details>
@@ -214,7 +214,7 @@ function DesktopContent({
     return (
       <main className={styles.shell} data-desktop-client="ready">
         <header>
-          <span>QwenPaw</span>
+          <span>小蜜蜂</span>
           <nav aria-label={t("desktop.host.controls")}>{controls}</nav>
         </header>
         {connection}
@@ -229,7 +229,7 @@ function DesktopContent({
         fallback={(reason) => (
           <main className={styles.shell}>
             <header>
-              <span>QwenPaw</span>
+              <span>小蜜蜂</span>
               {controls}
             </header>
             <section className={styles.connection} role="alert">

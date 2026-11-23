@@ -3737,9 +3737,9 @@
   },
   "hub": {
     "brand": {
-      "title": "Hub 管理",
-      "subtitle": "ローカルワークスペース",
-      "controlPlane": "管理基盤"
+      "title": "Hub administration",
+      "subtitle": "汇银咨询",
+      "controlPlane": "Control plane"
     },
     "navigation": {
       "workspace": "ワークスペース",
@@ -3748,10 +3748,11 @@
       "users": "ユーザー",
       "credentials": "認証情報",
       "audit": "監査ログ",
-      "settings": "システム設定"
+      "settings": "システム設定",
+      "rbac": "アクセス制御"
     },
     "actions": {
-      "backToQwenPaw": "QwenPawに戻る",
+      "backToQwenPaw": "小蜜蜂に戻る",
       "useLightTheme": "ライトテーマを使用する",
       "useDarkTheme": "ダークテーマを使用する",
       "signOut": "サインアウト",
@@ -3759,7 +3760,8 @@
       "stop": "停止",
       "disable": "無効化",
       "rebuild": "再構築",
-      "enableAndStart": "有効化して開始"
+      "enableAndStart": "有効化して開始",
+      "backToConsole": "小蜜蜂に戻る"
     },
     "roles": {
       "admin": "管理者",
@@ -4356,12 +4358,72 @@
         "passwordMemberOnly": "ここでは一般メンバーのパスワードのみリセットできます。",
         "connectionDisabled": "プロバイダーが無効です。カードのスイッチで有効にしてから、テストまたは既定モデルの設定を行ってください。"
       }
+    },
+    "rbac": {
+      "title": "Access control",
+      "description": "Assign BeeAgent role templates, or tick Skills/tools per member. Diverging ticks become a custom role.",
+      "tabs": {
+        "members": "Members",
+        "roles": "Roles",
+        "org": "Org defaults"
+      },
+      "selectUser": "Select member",
+      "selectUserHint": "Choose a member to view and edit entitlements.",
+      "assignRoles": "Assigned roles",
+      "saveRoles": "Save roles",
+      "rolesSavedHint": "Roles saved. Re-sync skills (sync-skills) if skill access should update on runtimes.",
+      "dailyQuota": "Daily quota",
+      "inheritOrgDefaults": "Inherit organization defaults",
+      "dailyChatLimit": "Daily chat limit",
+      "dailyTokenLimit": "Daily token limit",
+      "limitHint": "Use -1 for unlimited. Values apply after the next chat or model request.",
+      "saveQuota": "Save quota",
+      "preview": "Effective entitlements",
+      "usageToday": "Usage today",
+      "permissions": "Permissions",
+      "allowedSkills": "Allowed skills",
+      "noSkills": "None",
+      "syncHint": "Skill ACL is enforced on chat admit and after skill sync to runtimes.",
+      "systemRole": "System",
+      "createRole": "Create role",
+      "createRoleHint": "Create reusable templates. Member checkbox edits still generate per-user custom roles when they diverge.",
+      "roleRequired": "Role id and name are required",
+      "roleId": "Role id",
+      "roleName": "Display name",
+      "roleDescription": "Description",
+      "orgDefaults": "Organization defaults",
+      "orgDefaultsHint": "Applied when a member inherits org defaults.",
+      "timezone": "Quota timezone",
+      "currentDefaults": "Current",
+      "unlimited": "Unlimited",
+      "saved": "Saved",
+      "footerNote": "Hub admins always bypass quotas and receive all skills. Ordinary members start with bee.member.",
+      "applyTemplate": "Apply role template",
+      "applyTemplateHint": "Templates quickly fill the checkboxes below. Keep them as reusable presets.",
+      "directAcl": "Skills & tools",
+      "directAclHint": "Check what this member can use. If the selection no longer matches a template, it will be saved as a custom role for this user.",
+      "allowedTools": "Allowed tools",
+      "noTools": "None",
+      "selectAll": "Select all",
+      "clearAll": "Clear",
+      "advancedPerms": "Advanced",
+      "willSaveCustom": "Saving will switch this member to a custom role.",
+      "willSaveTemplate": "Saving will keep template role {{role}}.",
+      "unsaved": "unsaved changes",
+      "saveAcl": "Save access",
+      "aclSavedHint": "Access saved. Run sync-skills if runtime Skill/tool visibility should update now.",
+      "adminLocked": "Hub admins always have full access; member ACL cannot be reduced here.",
+      "customRoleName": "Custom · {{user}}",
+      "customRoleDesc": "Generated from member checkbox overrides",
+      "customRoleTag": "Custom",
+      "customRoleIdReserved": "Role ids starting with custom. are reserved for per-user overrides",
+      "currentRoles": "Assigned roles"
     }
   },
   "login": {
-    "title": "QwenPaw にログイン",
-    "registerTitle": "アカウント作成",
-    "firstUserHint": "管理者アカウントを作成して始めましょう",
+    "title": "Sign in to 小蜜蜂",
+    "registerTitle": "Create 小蜜蜂 account",
+    "firstUserHint": "Create the admin account to get started",
     "usernamePlaceholder": "ユーザー名",
     "passwordPlaceholder": "パスワード",
     "usernameRequired": "ユーザー名を入力してください",

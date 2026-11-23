@@ -34,6 +34,7 @@ import {
   ScrollText,
   Search,
   Settings2,
+  Shield,
   ShieldAlert,
   ShieldBan,
   Trash2,
@@ -58,6 +59,7 @@ import {
 } from "../../api/modules/hub";
 import styles from "./index.module.less";
 import UserManagement from "./governance/UserManagement";
+import RbacManagement from "./governance/RbacManagement";
 import OrganizationBudget from "./governance/OrganizationBudget";
 import OrganizationModels from "./governance/OrganizationModels";
 import {
@@ -322,6 +324,8 @@ export default function HubPage() {
           ? loadRuntimes(1)
           : section === "users" && me?.role === "admin"
           ? loadUsers(1)
+          : section === "rbac" && me?.role === "admin"
+          ? loadUsers(1)
           : section === "credentials"
           ? loadCredentials(1)
           : section === "audit" && me?.role === "admin"
@@ -368,7 +372,7 @@ export default function HubPage() {
     try {
       if (section === "overview") await loadOverview();
       if (section === "runtimes") await loadRuntimes(runtimes.page);
-      if (section === "users") await loadUsers(users.page);
+      if (section === "users" || section === "rbac") await loadUsers(users.page);
       if (section === "credentials") await loadCredentials(credentials.page);
       if (section === "audit") await loadAudit(audit.page);
       if (section === "settings") await loadSettings();
@@ -570,6 +574,11 @@ export default function HubPage() {
             id: "users" as const,
             label: t("hub.navigation.users"),
             icon: Users,
+          },
+          {
+            id: "rbac" as const,
+            label: t("hub.navigation.rbac"),
+            icon: Shield,
           },
           {
             id: "models" as const,
@@ -966,6 +975,9 @@ export default function HubPage() {
                 onCreate={() => setUserModalOpen(true)}
                 onUpdate={updateUser}
               />
+            )}
+            {section === "rbac" && me?.role === "admin" && (
+              <RbacManagement users={users.items} />
             )}
             {section === "credentials" && (
               <section>
