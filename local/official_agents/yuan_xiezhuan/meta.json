@@ -1,0 +1,8 @@
+{
+  "id": "yuan_xiezhuan",
+  "name": "专家 · 预案撰写",
+  "description": "应急与专项预案撰写",
+  "language": "zh",
+  "official": true,
+  "source_file": "预案撰写智能体.md"
+}

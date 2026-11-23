@@ -1,0 +1,14 @@
+{
+  "company": "汇银咨询",
+  "product": "小蜜蜂",
+  "product_full": "小蜜蜂 · 金融声誉智护平台",
+  "engineering": "BeeAgent",
+  "tagline": "AI赋能风控，数智守护声誉",
+  "colors": {
+    "primary": "#1668DC",
+    "primary_hover": "#0879F2",
+    "primary_dark": "#4C9AFF",
+    "accent": "#F2830A",
+    "title": "#123B7A"
+  }
+}

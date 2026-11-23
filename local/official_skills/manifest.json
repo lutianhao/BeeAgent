@@ -1,0 +1,81 @@
+{
+  "version": 1,
+  "provider": "BeeAgent",
+  "skills": [
+    {
+      "name": "wangping-huashu",
+      "display_name": "网评话术高手",
+      "description": "当用户需要声誉管理网评话术、多角色跟评、舆论降温与形象修复引导话术时使用。",
+      "legacy_agent_id": "wangping_huashu",
+      "emoji": "💬"
+    },
+    {
+      "name": "shensu-chegao",
+      "display_name": "申诉撤稿函撰写",
+      "description": "当用户需要撰写申诉函、撤稿函、不实报道投诉或名誉权相关函件时使用。",
+      "legacy_agent_id": "shensu_chegao",
+      "emoji": "✉️"
+    },
+    {
+      "name": "yuqing-yanpan",
+      "display_name": "舆情研判",
+      "description": "当用户需要对舆情链接/文本做研判、风险定级、传播分析与应对建议时使用。",
+      "legacy_agent_id": "yuqing_yanpan",
+      "emoji": "📡"
+    },
+    {
+      "name": "yuan-xiezhuan",
+      "display_name": "预案撰写",
+      "description": "当用户需要撰写专项应急预案、危机处置预案时使用。",
+      "legacy_agent_id": "yuan_xiezhuan",
+      "emoji": "📋"
+    },
+    {
+      "name": "shiqian-pinggu",
+      "display_name": "事前评估",
+      "description": "当用户需要对活动/事项做事前声誉风险评估时使用。",
+      "legacy_agent_id": "shiqian_pinggu",
+      "emoji": "🔍"
+    },
+    {
+      "name": "paicha-fangan",
+      "display_name": "排查方案",
+      "description": "当用户需要制定声誉风险排查方案、负面清单排查要点时使用。",
+      "legacy_agent_id": "paicha_fangan",
+      "emoji": "🧭"
+    },
+    {
+      "name": "weike-wenan",
+      "display_name": "微课文案",
+      "description": "当用户需要撰写微课文案、配音稿、培训短视频脚本时使用。",
+      "legacy_agent_id": "weike_wenan",
+      "emoji": "🎬"
+    },
+    {
+      "name": "yanlian-jiaoben",
+      "display_name": "演练脚本",
+      "description": "当用户需要编写舆情/危机演练脚本、桌面推演剧本时使用。",
+      "legacy_agent_id": "yanlian_jiaoben",
+      "emoji": "🎭"
+    },
+    {
+      "name": "koujing-xiezhuan",
+      "display_name": "口径撰写",
+      "description": "当用户需要撰写对外口径、专项沟通口径、口径卡或事件回应口径时使用。按十模块结构直接输出完整口径。",
+      "legacy_agent_id": "koujing_xiezhuan",
+      "emoji": "📢"
+    },
+    {
+      "name": "shuju-chuli",
+      "display_name": "数据处理",
+      "description": "当用户上传原始舆情 Excel/CSV，需要对行数据做四分类打标并回填扩展字段、交付带打标列的 Excel 时使用。",
+      "emoji": "📊"
+    },
+    {
+      "name": "yuqing-baogao",
+      "display_name": "报告生成",
+      "description": "当用户需要报告生成：银行舆情周报、月报、季度报或年报（周期性 Word 监测报告）时使用。对齐 aibank 年报模板四章做减法。",
+      "emoji": "📑"
+    }
+  ]
+}

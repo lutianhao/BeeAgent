@@ -1,0 +1,8 @@
+{
+  "id": "yuqing_yanpan",
+  "name": "专家 · 舆情研判",
+  "description": "舆情研判与态势分析",
+  "language": "zh",
+  "official": true,
+  "source_file": "舆情研判智能体.md"
+}

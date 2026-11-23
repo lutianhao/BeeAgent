@@ -1,0 +1,8 @@
+{
+  "id": "paicha_fangan",
+  "name": "专家 · 排查方案",
+  "description": "排查方案制定",
+  "language": "zh",
+  "official": true,
+  "source_file": " 排查方案智能体.md"
+}

@@ -1,0 +1,60 @@
+{
+  "version": 1,
+  "provider": "BeeAgent",
+  "agents": [
+    {
+      "id": "wangping_huashu",
+      "name": "专家 · 网评话术高手",
+      "description": "声誉管理网评话术撰写与舆论引导",
+      "source_file": "网评话术高手智能体.md"
+    },
+    {
+      "id": "shensu_chegao",
+      "name": "专家 · 申诉撤稿函撰写",
+      "description": "申诉与撤稿函专业撰写",
+      "source_file": "申诉撤稿函撰写智能体.md"
+    },
+    {
+      "id": "yuqing_yanpan",
+      "name": "专家 · 舆情研判",
+      "description": "舆情研判与态势分析",
+      "source_file": "舆情研判智能体.md"
+    },
+    {
+      "id": "yuan_xiezhuan",
+      "name": "专家 · 预案撰写",
+      "description": "应急与专项预案撰写",
+      "source_file": "预案撰写智能体.md"
+    },
+    {
+      "id": "shiqian_pinggu",
+      "name": "专家 · 事前评估",
+      "description": "事前风险评估",
+      "source_file": "事前评估智能体.md"
+    },
+    {
+      "id": "paicha_fangan",
+      "name": "专家 · 排查方案",
+      "description": "排查方案制定",
+      "source_file": " 排查方案智能体.md"
+    },
+    {
+      "id": "weike_wenan",
+      "name": "专家 · 微课文案",
+      "description": "微课文案撰写",
+      "source_file": "微课文案智能体.md"
+    },
+    {
+      "id": "yanlian_jiaoben",
+      "name": "专家 · 演练脚本",
+      "description": "演练脚本编写",
+      "source_file": " 演练脚本智能体.md"
+    },
+    {
+      "id": "koujing_xiezhuan",
+      "name": "专家 · 口径撰写",
+      "description": "对外口径撰写",
+      "source_file": "口径撰写.md"
+    }
+  ]
+}

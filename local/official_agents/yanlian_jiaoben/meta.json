@@ -1,0 +1,8 @@
+{
+  "id": "yanlian_jiaoben",
+  "name": "专家 · 演练脚本",
+  "description": "演练脚本编写",
+  "language": "zh",
+  "official": true,
+  "source_file": " 演练脚本智能体.md"
+}

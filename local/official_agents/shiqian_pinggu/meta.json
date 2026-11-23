@@ -1,0 +1,8 @@
+{
+  "id": "shiqian_pinggu",
+  "name": "专家 · 事前评估",
+  "description": "事前风险评估",
+  "language": "zh",
+  "official": true,
+  "source_file": "事前评估智能体.md"
+}

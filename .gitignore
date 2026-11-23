@@ -69,6 +69,15 @@ config.json
 # Local Hub runtime config (copy from hub.yaml.example)
 hub.yaml
 
+# BeeAgent local deploy overlay: keep templates, ignore secrets & runtime
+local/secrets/**
+!local/secrets/**/*.example
+!local/secrets/README.md
+local/run/**
+!local/run/.gitkeep
+local/**/__pycache__/
+local/**/*.pyc
+
 # IDEs and editors
 .idea/
 .vscode/
