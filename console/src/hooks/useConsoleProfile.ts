@@ -85,17 +85,10 @@ export function isMenuIdAllowed(
   return profile.nav.show.includes(id);
 }
 
-type MenuTreeItem = {
-  id: string;
-  __children?: MenuTreeItem[];
-  [key: string]: unknown;
-};
-
 /** Drop menu nodes (and empty groups) not allowed by console-profile.nav. */
-export function filterMenuForConsoleProfile<T extends MenuTreeItem>(
-  items: T[],
-  profile: HubConsoleProfile | null | undefined,
-): T[] {
+export function filterMenuForConsoleProfile<
+  T extends { id: string; __children?: T[] },
+>(items: T[], profile: HubConsoleProfile | null | undefined): T[] {
   if (!profile?.nav) return items;
   if (profile.nav.mode === "admin" && !profile.nav.hide.length) return items;
 

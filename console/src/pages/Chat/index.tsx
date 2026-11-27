@@ -3797,7 +3797,12 @@ export default function ChatPage() {
   const handleFileUpload = useCallback(
     async (options: {
       file: File;
-      onSuccess: (body: { url?: string; thumbUrl?: string }) => void;
+      onSuccess: (body: {
+        url?: string;
+        thumbUrl?: string;
+        path?: string;
+        file_name?: string;
+      }) => void;
       onError?: (e: Error) => void;
       onProgress?: (e: { percent?: number }) => void;
     }) => {
