@@ -103,6 +103,7 @@ from .model_service.routes import governance_router
 from .model_service.listener import ModelListener
 from .model_service.runtime_policy import require_model_route
 from .rbac import RbacService, rbac_router
+from .org_kb import OrgKbService, org_kb_router
 from .org_skills import OrgSkillsService, org_skills_router
 from . import websocket_proxy
 
@@ -192,6 +193,10 @@ def create_hub_app(  # pylint: disable=too-many-statements
     org_skills_service = OrgSkillsService(
         runtime_service.registry.database_path,
     )
+    org_kb_service = OrgKbService(
+        runtime_service.registry.database_path,
+    )
+    org_kb_service.ensure_default_libraries(created_by="system")
     rbac_service.ensure_schema()
     model_gateway = ModelGateway(
         model_catalog,
@@ -209,6 +214,15 @@ def create_hub_app(  # pylint: disable=too-many-statements
         network = model_networks[record.provisioner]
         values["QWENPAW_HUB_MODEL_URL"] = network.url(model_listener.port)
         values["QWENPAW_HUB_MODEL_TOKEN"] = model_catalog.issue_token(record)
+        # Same-host Hub KB search for personal runtimes.
+        values["QWENPAW_HUB_CONTROL_DB"] = str(
+            runtime_service.registry.database_path,
+        )
+        values["QWENPAW_HUB_USER_ID"] = str(record.owner_user_id or "")
+        # Display name for org_skill_publish owner_username (not just user_id).
+        owner = hub_auth.get_user(record.owner_user_id)
+        if owner is not None and getattr(owner, "username", None):
+            values["QWENPAW_HUB_USERNAME"] = str(owner.username)
         return values
 
     def user_profile(record):
@@ -600,6 +614,16 @@ def create_hub_app(  # pylint: disable=too-many-statements
         org_skills_router(
             org_skills_service,
             require_user,
+            rbac=rbac_service,
+            operations=operations,
+        ),
+    )
+    app.include_router(
+        org_kb_router(
+            org_kb_service,
+            require_user,
+            rbac=rbac_service,
+            operations=operations,
         ),
     )
     app.state.model_listener = model_listener
@@ -608,6 +632,7 @@ def create_hub_app(  # pylint: disable=too-many-statements
     app.state.model_gateway = model_gateway
     app.state.rbac = rbac_service
     app.state.org_skills = org_skills_service
+    app.state.org_kb = org_kb_service
 
     @app.get("/api/hub/healthz")
     async def healthz(

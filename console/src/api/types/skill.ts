@@ -10,6 +10,8 @@ export type SkillSyncStatus =
 export interface SkillSpec {
   installation_origin?: InstallationOrigin | null;
   name: string;
+  /** Market / org Chinese title when installed from BeeAgent org skills. */
+  display_name?: string;
   description?: string;
   version_text?: string;
   source: string;

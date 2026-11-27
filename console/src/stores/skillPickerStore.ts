@@ -63,16 +63,30 @@ export function getSelectedSkill(): string | null {
   return useSkillPickerStore.getState().selectedSkill;
 }
 
-/** Pull a specialized skill prefix out of composer text, if present. */
+/** Drop sticky picker selection (new chat / session switch). */
+export function clearSelectedSkill(): void {
+  useSkillPickerStore.getState().setSelectedSkill(null);
+}
+
+/**
+ * Pull a specialized skill summon prefix out of composer text.
+ * Supports both ``/skill-name`` and ``@skill-name`` (豆包式召唤).
+ */
 export function extractOfficialSkillPrefix(
   text: string,
-): { skill: string; rest: string } | null {
-  const match = /^\/([a-z][a-z0-9-]{0,62})(?:\s+|$)/i.exec(text);
+): { skill: string; rest: string; marker: "/" | "@" } | null {
+  const match = /^([/@])([a-z][a-z0-9-]{0,62})(?:\s+|$)/i.exec(text);
   if (!match) return null;
   return {
-    skill: match[1].toLowerCase(),
+    marker: match[1] as "/" | "@",
+    skill: match[2].toLowerCase(),
     rest: text.slice(match[0].length),
   };
+}
+
+/** True when text is an in-progress ``/`` or ``@`` skill summon (no space yet). */
+export function isSkillSummonPopupOpen(value: string): boolean {
+  return /^[/@][a-z0-9-]*$/i.test(value);
 }
 
 /** Strip a previously injected skill-constraint block so resends stay clean. */
@@ -86,16 +100,23 @@ const SKILL_CONSTRAINT_RE =
  * slash commands the user typed.
  */
 export function prepareSkillMessage(text: string): string {
-  const skill = getSelectedSkill();
-  if (!skill) return text;
-
   let body = text;
   const extracted = extractOfficialSkillPrefix(body);
+
+  // Typing ``/skill`` or ``@skill`` without picker selection still summons.
+  let skill = getSelectedSkill();
+  if (!skill && extracted) {
+    skill = extracted.skill;
+    useSkillPickerStore.getState().setSelectedSkill(skill);
+  }
+  if (!skill) return text;
+
   if (extracted) {
     body = extracted.rest.replace(/^\s+/, "");
   } else {
     const trimmed = body.trimStart();
-    if (trimmed.startsWith("/")) return text;
+    // Leave unrelated slash commands (e.g. /compact) alone.
+    if (trimmed.startsWith("/") || trimmed.startsWith("@")) return text;
     body = body.replace(/^\s+/, "");
   }
 

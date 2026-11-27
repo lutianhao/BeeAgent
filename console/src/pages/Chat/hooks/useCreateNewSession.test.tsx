@@ -32,12 +32,19 @@ import { useCreateNewSession } from "./useCreateNewSession";
 import sessionApi from "../sessionApi";
 import { getDraftStorageKey } from "../chatInputDraft";
 import { useAgentStore } from "../../../stores/agentStore";
+import {
+  getSelectedSkill,
+  useSkillPickerStore,
+} from "../../../stores/skillPickerStore";
+import { useOrgKbModeStore } from "../../../stores/orgKbModeStore";
 
 describe("useCreateNewSession", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     sessionStorage.clear();
     mocks.createSession.mockResolvedValue("local-session");
+    useSkillPickerStore.getState().setSelectedSkill(null);
+    useOrgKbModeStore.getState().setEnabled(false);
   });
 
   it("opens the blank composer without allocating a backend session", async () => {
@@ -59,6 +66,19 @@ describe("useCreateNewSession", () => {
     expect(
       useAgentStore.getState().getLastChatId(agents.selectedAgent),
     ).toBeUndefined();
+  });
+
+  it("clears sticky specialized skill and org-KB mode for a blank draft", async () => {
+    useSkillPickerStore.getState().setSelectedSkill("koujing-xiezhuan");
+    useOrgKbModeStore.getState().setEnabled(true);
+    const { result } = renderHook(() => useCreateNewSession());
+
+    await act(async () => {
+      await result.current();
+    });
+
+    expect(getSelectedSkill()).toBeNull();
+    expect(useOrgKbModeStore.getState().enabled).toBe(false);
   });
 
   it("keeps repeated new-chat requests empty, including the post-delete action", async () => {

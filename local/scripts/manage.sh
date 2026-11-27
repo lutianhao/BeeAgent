@@ -145,7 +145,8 @@ show_help() {
   restart            重启 Hub
   status             查看运行状态与健康检查
   logs [-f]          查看日志（-f 跟踪）
-  sync-skills [--force]  同步官方 Skills 到全部 Hub 用户运行时（推荐）
+  sync-users [--dry-run] 按 hub_rbac/user_sync_roster.yaml 重申各用户 RBAC/安装期望
+  sync-skills [--force]  先 sync-users，再同步官方 Skills 到全部运行时（推荐）
   provision-defaults 为全部运行时注入 DeepSeek 模型 + web_search/web_fetch
   sync-agents [--force]  （兼容）旧版专家智能体同步；现已改为 Skills
   doctor             检查 conda / 配置 / 端口 / bwrap
@@ -168,8 +169,24 @@ show_help() {
   $0 status
   $0 logs -f
   $0 restart
+  $0 sync-users
   $0 sync-skills --force
 EOF
+}
+
+do_sync_users() {
+  local script="$SCRIPT_DIR/apply_user_sync_roster.py"
+  local roster="$LOCAL_DIR/hub_rbac/user_sync_roster.yaml"
+  [[ -f "$script" ]] || { err "缺少 $script"; exit 1; }
+  [[ -f "$roster" ]] || { err "缺少用户同步清单: $roster"; exit 1; }
+  load_secrets
+  info "按用户同步清单重申 RBAC / 组织技能安装: $roster"
+  if [[ "${1:-}" == "--dry-run" ]]; then
+    python3 "$script" --roster "$roster" --dry-run
+  else
+    python3 "$script" --roster "$roster"
+  fi
+  ok "用户同步清单已应用"
 }
 
 do_provision_defaults() {
@@ -189,6 +206,8 @@ do_sync_skills() {
   local script="$SCRIPT_DIR/sync_official_skills.py"
   [[ -f "$script" ]] || { err "缺少 $script"; exit 1; }
   load_secrets
+  # 迭代期：先按 roster 纠正各用户 RBAC，再刷 runtime Skills/工具
+  do_sync_users || warn "sync-users 失败（继续尝试 sync-skills）"
   info "同步官方 Skills: $ROOT_DIR/local/official_skills"
   if [[ "$force" -eq 1 ]]; then
     python3 "$script" --force
@@ -389,6 +408,7 @@ case "$cmd" in
   restart) do_restart ;;
   status)  do_status ;;
   logs)    do_logs "$@" ;;
+  sync-users) do_sync_users "$@" ;;
   sync-skills) do_sync_skills "$@" ;;
   provision-defaults) do_provision_defaults ;;
   sync-agents) do_sync_agents "$@" ;;

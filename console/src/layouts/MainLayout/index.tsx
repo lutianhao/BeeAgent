@@ -18,6 +18,7 @@ import { PageShell } from "../../components/PageShell";
 import { pickSelectedKey } from "./routeSelection";
 import { RouteDocumentTitle } from "./RouteDocumentTitle";
 import { getRouteTitle } from "./routeTitle";
+import { ConsoleProfileRouteGuard } from "./ConsoleProfileRouteGuard";
 import {
   buildApprovalNavigationPath,
   type ApprovalNotificationTarget,
@@ -106,6 +107,7 @@ export default function MainLayout({ hubMode = false }: { hubMode?: boolean }) {
     <HubModeContext.Provider value={hubMode}>
       <Layout className={styles.mainLayout}>
         <SettingsSearchNavigation />
+        {hubMode ? <ConsoleProfileRouteGuard /> : null}
         <RouteDocumentTitle title={pageTitle} />
         <a
           className={styles.skipLink}

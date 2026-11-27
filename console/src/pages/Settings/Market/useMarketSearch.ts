@@ -95,6 +95,14 @@ export function useMarketSearch(options?: {
       return resolveInitialProviders();
     },
   );
+
+  // When the host page pins a source (e.g. /market?tab=skills&source=beeagent-org),
+  // re-apply it so a stale localStorage selection cannot hide the org shelf.
+  const preferredKey = preferredProviders?.join(",") ?? "";
+  useEffect(() => {
+    if (!preferredProviders?.length) return;
+    setSelectedProviderKeys(new Set(preferredProviders));
+  }, [preferredKey, preferredProviders]);
   const [categories, setCategories] = useState<MarketCategory[]>([]);
   const [category, setCategoryState] = useState("");
   const [query, setQueryState] = useState("");

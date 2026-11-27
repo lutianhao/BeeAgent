@@ -1,4 +1,4 @@
-import { useSearchParams } from "react-router-dom";
+import { Navigate, useSearchParams } from "react-router-dom";
 import { MarketplaceHeader } from "./components/MarketplaceHeader";
 import CommunityPage from "./Community";
 import AppCenterPage from "../AppCenter";
@@ -10,6 +10,7 @@ import {
   type MarketInstallController,
 } from "../Settings/Market/useMarketInstall";
 import { useAgentStore } from "../../stores/agentStore";
+import { BEEAGENT_ORG_PROVIDER_KEY } from "../Settings/Market/orgMarketSource";
 import styles from "./index.module.less";
 
 function getSkillMarketTarget(value: string | null): InstallTarget {
@@ -43,13 +44,34 @@ export default function MarketplacePage() {
   const source = searchParams.get("source");
   const selectedAgent = useAgentStore((state) => state.selectedAgent);
   const install = useMarketInstall({ selectedAgent });
-  const preferredProviders = source ? [source] : undefined;
+  // Skills tab defaults to org library when no explicit source is set.
+  const preferredProviders =
+    tab === "skills"
+      ? [source || BEEAGENT_ORG_PROVIDER_KEY]
+      : source
+        ? [source]
+        : undefined;
+
+  // Hub landing: bare /market opens org skill shelf (not App Center).
+  if (!tab) {
+    const target = searchParams.get("target");
+    const suffix =
+      target === "pool" || target === "workspace" ? `&target=${target}` : "";
+    return (
+      <Navigate
+        to={`/market?tab=skills&source=${BEEAGENT_ORG_PROVIDER_KEY}${suffix}`}
+        replace
+      />
+    );
+  }
 
   let content = <AppCenterPage />;
   if (tab === "community") {
     content = <CommunityPage />;
   } else if (tab === "plugins") {
     content = <PluginManagerPage />;
+  } else if (tab === "apps") {
+    content = <AppCenterPage />;
   } else if (tab === "skills") {
     content = (
       <SkillMarketplace

@@ -822,3 +822,66 @@ def test_linux_runtime_filesystem_is_shared_and_persistent(
         check=False,
     )
     assert result.returncode == 0, result.stderr
+
+
+@pytest.mark.skipif(sys.platform != "linux", reason="Requires bubblewrap")
+def test_linux_binds_hub_control_db_into_sandbox(tmp_path):
+    """Org skill/KB tools need control.db visible inside bwrap."""
+    import sqlite3
+
+    record = _record(tmp_path)
+    (record.working_dir / "tmp").mkdir()
+    hub_dir = tmp_path / "hub"
+    hub_dir.mkdir()
+    (hub_dir / "org_skills").mkdir()
+    (hub_dir / "org_kb").mkdir()
+    (hub_dir / "runtimes" / "other").mkdir(parents=True)
+    (hub_dir / "runtimes" / "other" / "secret.txt").write_text(
+        "nope",
+        encoding="utf-8",
+    )
+    (hub_dir / "secrets").mkdir()
+    (hub_dir / "secrets" / "token").write_text("secret", encoding="utf-8")
+    control_db = hub_dir / "control.db"
+    connection = sqlite3.connect(str(control_db))
+    connection.execute("CREATE TABLE t (id INTEGER)")
+    connection.execute("PRAGMA journal_mode=WAL")
+    connection.commit()
+    connection.close()
+    environment = LocalProcessRuntimeProvisioner.runtime_environment(
+        record,
+        {
+            "QWENPAW_RUNTIME_INTERNAL_TOKEN": "sandbox-test-token",
+            "QWENPAW_HUB_CONTROL_DB": str(control_db),
+        },
+    )
+    isolator = LinuxBubblewrapIsolator()
+    launch = isolator.prepare(
+        record,
+        [
+            "/bin/sh",
+            "-c",
+            'test -r "$QWENPAW_HUB_CONTROL_DB" && '
+            'test "$QWENPAW_HUB_CONTROL_DB" = /hub/control.db && '
+            'test -d /hub/org_skills && test -d /hub/org_kb && '
+            'test ! -e /hub/runtimes && test ! -e /hub/secrets && '
+            'python3 -c "import sqlite3; '
+            "c=sqlite3.connect('/hub/control.db'); "
+            "c.execute('insert into t values (1)'); c.commit(); c.close()\" && "
+            'printf mounted',
+        ],
+        environment,
+    )
+    assert launch.environment["QWENPAW_HUB_CONTROL_DB"] == "/hub/control.db"
+    result = subprocess.run(
+        launch.command,
+        env=launch.environment,
+        capture_output=True,
+        text=True,
+        timeout=15,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+    assert result.stdout == "mounted"
+    rows = sqlite3.connect(str(control_db)).execute("select id from t").fetchall()
+    assert rows == [(1,)]

@@ -1,9 +1,10 @@
 import { ChevronDown, Library, Plus, Sparkles, X } from "lucide-react";
 import { Modal, Popover, Tooltip } from "antd";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 
+import { hubApi } from "../../api/modules/hub";
 import type { SkillSpec } from "../../api/types";
 import { useIsMobile } from "../../hooks/useIsMobile";
 import { OsDrawer } from "../../os/OsOverlay";
@@ -39,11 +40,37 @@ function skillHintKey(name: string): string {
 function resolveSkillLabel(
   skill: SkillSpec,
   t: (key: string, options?: Record<string, unknown>) => string,
+  orgDisplayNames?: Map<string, string>,
 ): string {
+  const fromSkill = skill.display_name?.trim();
+  if (fromSkill) return fromSkill;
+  const fromHub = orgDisplayNames?.get(skill.name)?.trim();
+  if (fromHub) return fromHub;
   const key = skillLabelKey(skill.name);
   const translated = t(key, { defaultValue: "" });
   if (translated && translated !== key) return translated;
   return skill.name;
+}
+
+/** Primary (market/i18n) title + muted English slug for disambiguation. */
+function SkillTitle({
+  skill,
+  t,
+  orgDisplayNames,
+}: {
+  skill: SkillSpec;
+  t: (key: string, options?: Record<string, unknown>) => string;
+  orgDisplayNames?: Map<string, string>;
+}): ReactNode {
+  const primary = resolveSkillLabel(skill, t, orgDisplayNames);
+  const slug = skill.name;
+  if (!slug || primary === slug) return primary;
+  return (
+    <>
+      {primary}
+      <span className={skillStyles.nameSlug}>{slug}</span>
+    </>
+  );
 }
 
 function resolveSkillHint(
@@ -53,13 +80,15 @@ function resolveSkillHint(
   if (!OFFICIAL_SKILL_SET.has(skill.name)) {
     return (
       skill.description?.trim() ||
-      t("chat.skillPicker.orgSkillHint", { defaultValue: "组织技能" })
+      t("chat.skillPicker.orgSkillHint", {
+        defaultValue: "组织技能 · / 或 @ 召唤",
+      })
     );
   }
   const key = skillHintKey(skill.name);
   const translated = t(key, { defaultValue: "" });
   if (translated && translated !== key) return translated;
-  return `/${skill.name}`;
+  return `/${skill.name} · @${skill.name}`;
 }
 
 /** If the composer still has a raw official prefix, absorb it into picker state. */
@@ -86,6 +115,9 @@ export function SkillPicker({
   const isMobile = useIsMobile();
   const [open, setOpen] = useState(false);
   const [guideOpen, setGuideOpen] = useState(false);
+  const [orgDisplayNames, setOrgDisplayNames] = useState<Map<string, string>>(
+    () => new Map(),
+  );
   const selectedName = useSkillPickerStore((state) => state.selectedSkill);
   const setSelectedSkill = useSkillPickerStore(
     (state) => state.setSelectedSkill,
@@ -99,6 +131,29 @@ export function SkillPicker({
 
   const selectedSkill =
     pickerSkills.find((skill) => skill.name === selectedName) ?? null;
+
+  // Enrich org skills already installed before display_name was persisted.
+  useEffect(() => {
+    let cancelled = false;
+    void hubApi
+      .listOrgSkills(false)
+      .then((res) => {
+        if (cancelled) return;
+        const next = new Map<string, string>();
+        for (const item of res.items || []) {
+          if (!item?.installed || !item.name) continue;
+          const title = (item.display_name || "").trim();
+          if (title) next.set(item.name, title);
+        }
+        setOrgDisplayNames(next);
+      })
+      .catch(() => {
+        /* Hub optional outside org mode */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [skills]);
 
   // One-time cleanup if a previous build left `/skill` plain text in the box.
   useEffect(() => {
@@ -201,7 +256,11 @@ export function SkillPicker({
                 </span>
                 <span className={styles.optionCopy}>
                   <span className={styles.optionName}>
-                    {resolveSkillLabel(skill, t)}
+                    <SkillTitle
+                      skill={skill}
+                      t={t}
+                      orgDisplayNames={orgDisplayNames}
+                    />
                   </span>
                   <span className={styles.optionDescription}>
                     {resolveSkillHint(skill, t)}
@@ -285,7 +344,7 @@ export function SkillPicker({
   );
 
   const triggerLabel = selectedSkill
-    ? resolveSkillLabel(selectedSkill, t)
+    ? resolveSkillLabel(selectedSkill, t, orgDisplayNames)
     : t("chat.skillPicker.trigger");
 
   const triggerButton = (
@@ -307,7 +366,15 @@ export function SkillPicker({
       {!compact && (
         <>
           <span className={selectedSkill ? skillStyles.selectedLabel : undefined}>
-            {triggerLabel}
+            {selectedSkill ? (
+              <SkillTitle
+                skill={selectedSkill}
+                t={t}
+                orgDisplayNames={orgDisplayNames}
+              />
+            ) : (
+              triggerLabel
+            )}
           </span>
           <ChevronDown size={13} />
         </>

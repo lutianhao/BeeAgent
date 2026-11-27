@@ -88,10 +88,23 @@ import {
   prepareLoopModeMessage,
   useLoopStore,
 } from "../../stores/loopStore";
-import { prepareSkillMessage } from "../../stores/skillPickerStore";
+import {
+  clearSelectedSkill,
+  isSpecializedPickerSkill,
+  listPickerSkills,
+  prepareSkillMessage,
+} from "../../stores/skillPickerStore";
+import {
+  prepareOrgKbMessage,
+  useOrgKbModeStore,
+} from "../../stores/orgKbModeStore";
 import { buildLoopSlashSuggestions } from "./loopSlashSuggestions";
 import { InlineMarkdown } from "../../components/Markdown/InlineMarkdown";
-import { LoopModeSelector, SkillPicker } from "../../components/LoopInput";
+import {
+  LoopModeSelector,
+  OrgKnowledgeControl,
+  SkillPicker,
+} from "../../components/LoopInput";
 import { useChatAnywhereInput } from "@agentscope-ai/chat";
 import { useChatAnywhereI18n } from "@agentscope-ai/chat/lib/AgentScopeRuntimeWebUI/core/Context/ChatAnywhereI18nContext";
 import styles from "./index.module.less";
@@ -134,6 +147,8 @@ import {
 } from "../../plugins/registry/types";
 import { ChatScalar, ChatList } from "../../plugins/registry/slotKeys";
 import { HostResponseCard } from "./HostBubbles";
+import { renderHostUserRequest } from "./HostUserRequest";
+import { unwrapAgentComposerText } from "../../stores/composerDisplay";
 import { cancelSdkChatRequest } from "./sdkCancellation";
 import {
   awaitInChatScope,
@@ -302,6 +317,35 @@ import {
 // Supports multiple concurrent sessions: each session has its own controller.
 // The controller registry lives in backgroundQueueRegistry (unit-tested).
 // ---------------------------------------------------------------------------
+
+/** Media the LLM must "see" via multimodal APIs (not agent file tools). */
+function isModelVisionMedia(file: {
+  type?: string;
+  name?: string;
+}): boolean {
+  const type = (file.type || "").toLowerCase();
+  if (
+    type.startsWith("image/") ||
+    type.startsWith("video/") ||
+    type.startsWith("audio/")
+  ) {
+    return true;
+  }
+  const name = (file.name || "").toLowerCase();
+  return /\.(png|jpe?g|gif|webp|bmp|svg|mp4|webm|mov|mkv|avi|mp3|wav|m4a|aac)$/i.test(
+    name,
+  );
+}
+
+function isVideoOrAudioAttachment(file: {
+  type?: string;
+  name?: string;
+}): boolean {
+  const type = (file.type || "").toLowerCase();
+  if (type.startsWith("video/") || type.startsWith("audio/")) return true;
+  const name = (file.name || "").toLowerCase();
+  return /\.(mp4|webm|mov|mkv|avi|mp3|wav|m4a|aac)$/i.test(name);
+}
 
 /**
  * Convert a queue item's attachments array into the content-item format
@@ -1214,6 +1258,12 @@ const timestampStyle: React.CSSProperties = {
 const isLocalTimestampId = (id: string | null | undefined): boolean =>
   !!id && /^\d+-[a-z0-9]+$/.test(id);
 
+
+/** Skill summon + optional「企业知识」kb_search constraint. */
+function prepareComposerMessage(text: string): string {
+  return prepareOrgKbMessage(prepareSkillMessage(text));
+}
+
 export default function ChatPage() {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
@@ -1532,6 +1582,10 @@ export default function ChatPage() {
       size?: number;
     }[]
   >([]);
+  /** Attachments admitted by beforeSubmit for the in-flight direct send. */
+  const submissionAttachmentsRef = useRef<
+    Array<{ url: string; name?: string; type?: string; size?: number }>
+  >([]);
 
   // Build SDK fileList from QueueItem.attachments
   // SDK reads file.response.url for image_url / file_url (see AgentScopeRuntimeRequestBuilder)
@@ -1821,6 +1875,19 @@ export default function ChatPage() {
   );
   const showSenderBeforeUI = isQueueOnlyTab || hasQueueItems || bgTaskCount > 0;
 
+  // Specialized skill / org-KB toggles are global composer state. Reset when
+  // switching chats, but keep them when a blank draft becomes a real session
+  // after the first send (so the chosen skill still applies to follow-ups).
+  const prevQueueSessionRef = useRef(queueSessionId);
+  useEffect(() => {
+    const prev = prevQueueSessionRef.current;
+    prevQueueSessionRef.current = queueSessionId;
+    if (prev === queueSessionId) return;
+    if (prev === "new" && queueSessionId !== "new") return;
+    clearSelectedSkill();
+    useOrgKbModeStore.getState().setEnabled(false);
+  }, [queueSessionId]);
+
   // On session load / switch: prune other sessions' watchers, then rehydrate
   // still-offloaded tools from GET /tool-calls/{session_id}.
   useEffect(() => {
@@ -2099,7 +2166,7 @@ export default function ChatPage() {
       if (!(textarea instanceof HTMLTextAreaElement)) return;
       if (!textarea.closest('[class*="sender"]')) return;
       if (
-        !textarea.value.startsWith("/") ||
+        !/^[/@]/.test(textarea.value) ||
         /\s/.test(textarea.value.slice(1))
       ) {
         return;
@@ -2116,7 +2183,8 @@ export default function ChatPage() {
 
       event.preventDefault();
       event.stopPropagation();
-      setTextareaValue(textarea, `/${selectedValue} `);
+      const marker = textarea.value.startsWith("@") ? "@" : "/";
+      setTextareaValue(textarea, `${marker}${selectedValue} `);
       textarea.focus();
     };
 
@@ -2497,7 +2565,7 @@ export default function ChatPage() {
         resolveIdentity: (id) => sessionApi.getSessionIdentity(id),
         prepareQuery: (query) =>
           usesQwenPawBackend
-            ? prepareLoopModeMessage(prepareSkillMessage(query))
+            ? prepareLoopModeMessage(prepareComposerMessage(query))
             : query,
         requestContext: captureRequestContext(),
         queueFullMessage: t("chat.queue.queueFull", { max: MAX_QUEUE_SIZE }),
@@ -2546,7 +2614,7 @@ export default function ChatPage() {
         message.warning(t("chat.queue.queueFull", { max: MAX_QUEUE_SIZE }));
         return;
       }
-      const queueText = prepareLoopModeMessage(prepareSkillMessage(val));
+      const queueText = prepareLoopModeMessage(prepareComposerMessage(val));
       const enqueueIdentity = sessionApi.getSessionIdentity(
         queueSessionId === "new" ? "" : queueSessionId,
       );
@@ -3349,17 +3417,47 @@ export default function ChatPage() {
           ? attachClientMessageId(lastMsg, clientMessageId)
           : lastMsg
         : undefined;
+      // SDK Builder sometimes ships text-only even when Upload chips show a
+      // completed Excel/PDF (response.url not yet mirrored into fileList).
+      // Re-attach from beforeSubmit snapshot so the agent sees the file path.
+      let contentForWire: unknown[] | undefined = Array.isArray(
+        rewrittenLastMsg?.content,
+      )
+        ? [...(rewrittenLastMsg!.content as unknown[])]
+        : undefined;
+      if (contentForWire && rewrittenLastMsg?.role === "user") {
+        const hasMediaPart = contentForWire.some((part) => {
+          if (!part || typeof part !== "object") return false;
+          const type = String((part as { type?: string }).type || "");
+          return (
+            type === "file" ||
+            type === "image" ||
+            type === "video" ||
+            type === "audio"
+          );
+        });
+        const admitted = submissionAttachmentsRef.current;
+        if (!hasMediaPart && admitted.length > 0) {
+          contentForWire = [
+            ...contentForWire,
+            ...buildAttachmentContentItems(admitted),
+          ];
+        }
+        submissionAttachmentsRef.current = [];
+      }
       const rewrittenInput: Array<Record<string, unknown>> =
-        rewrittenLastMsg?.content && Array.isArray(rewrittenLastMsg.content)
+        rewrittenLastMsg && contentForWire
           ? [
               {
                 ...rewrittenLastMsg,
-                content: rewrittenLastMsg.content.map(normalizeContentUrls),
+                content: contentForWire.map((part) =>
+                  normalizeContentUrls(part),
+                ),
               },
             ]
           : rewrittenLastMsg
-          ? [rewrittenLastMsg]
-          : [];
+            ? [rewrittenLastMsg]
+            : [];
 
       // Keep the receipt identity on the SDK's visible user card as well as
       // the wire request. Regenerate targets this identity, never text.
@@ -3520,16 +3618,19 @@ export default function ChatPage() {
     }) => {
       const { file, onSuccess, onError, onProgress } = options;
       try {
-        // Warn when model has no multimodal support
-        if (usesQwenPawBackend && !multimodalCaps.supportsMultimodal) {
-          message.warning(t("chat.attachments.multimodalWarning"));
-        } else if (
-          multimodalCaps.supportsImage &&
-          !multimodalCaps.supportsVideo &&
-          !file.type.startsWith("image/")
-        ) {
-          // Warn (not block) when only image is supported
-          message.warning(t("chat.attachments.imageOnlyWarning"));
+        // Documents (xlsx/pdf/…) go to the workspace and are handled by agent
+        // tools — do NOT warn about "image-only" multimodal for them.
+        // Only vision/audio media needs model multimodal capability.
+        if (usesQwenPawBackend && isModelVisionMedia(file)) {
+          if (!multimodalCaps.supportsMultimodal) {
+            message.warning(t("chat.attachments.multimodalWarning"));
+          } else if (
+            multimodalCaps.supportsImage &&
+            !multimodalCaps.supportsVideo &&
+            isVideoOrAudioAttachment(file)
+          ) {
+            message.warning(t("chat.attachments.imageOnlyWarning"));
+          }
         }
         const sizeMb = file.size / 1024 / 1024;
         const uploadLimit = useUploadLimitStore.getState().uploadMaxSizeMb;
@@ -3546,20 +3647,38 @@ export default function ChatPage() {
 
         const res = await chatApi.uploadFile(file);
         onProgress?.({ percent: 100 });
-        const previewUrl = chatApi.filePreviewUrl(res.url);
-        onSuccess({ url: previewUrl });
-        // Track uploaded file for queue attachment support
+        // Prefer workspace path for agent tools; also expose preview URL.
+        const storedPath = String(res.url || "");
+        const previewUrl = chatApi.filePreviewUrl(storedPath);
+        const mime =
+          file.type ||
+          (/\.xlsx?$/i.test(file.name)
+            ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            : file.type);
+        onSuccess({
+          url: previewUrl || storedPath,
+          path: storedPath,
+          file_name: res.file_name || file.name,
+        });
+        // Track uploaded file for queue + direct-send injection
         pendingFileListRef.current = [
           ...pendingFileListRef.current,
           {
-            uid: res.url,
+            uid: storedPath || previewUrl,
             name: file.name,
-            url: previewUrl,
-            type: file.type,
+            url: previewUrl || storedPath,
+            type: mime,
             size: file.size,
           },
         ];
       } catch (e) {
+        message.error(
+          e instanceof Error
+            ? e.message
+            : t("chat.attachments.uploadFailed", {
+                defaultValue: "附件上传失败，请重试",
+              }),
+        );
         onError?.(e instanceof Error ? e : new Error(String(e)));
       }
     },
@@ -3618,6 +3737,13 @@ export default function ChatPage() {
             value: "skills",
             description: t("chat.commands.skills.description"),
           },
+          {
+            command: "/kb",
+            value: "kb",
+            description: t("chat.commands.kb.description", {
+              defaultValue: "查企业知识库（优先 kb_search）",
+            }),
+          },
         ]
       : backendCommands.map((item) => ({
           command: `/${item.name}`,
@@ -3645,18 +3771,33 @@ export default function ChatPage() {
           i18n.language,
         )
       : [];
-    const skillSuggestions: CommandSuggestion[] = consoleSkills
+    // Specialized (官方/组织) first so `/` `@` summon surfaces reputation skills.
+    const specializedNames = new Set(
+      listPickerSkills(consoleSkills).map((s) => s.name),
+    );
+    const skillSuggestions: CommandSuggestion[] = [...consoleSkills]
       .filter(
         (skill) =>
           !reservedCommands.has(skill.name) &&
           !loopCommandNames.has(skill.name),
       )
-      .sort((a, b) => a.name.localeCompare(b.name))
-      .map((skill) => ({
-        command: `/${skill.name}`,
-        value: skill.name,
-        description: "",
-      }));
+      .sort((a, b) => {
+        const aSpec = specializedNames.has(a.name) ? 0 : 1;
+        const bSpec = specializedNames.has(b.name) ? 0 : 1;
+        if (aSpec !== bSpec) return aSpec - bSpec;
+        return a.name.localeCompare(b.name);
+      })
+      .map((skill) => {
+        const specialized = isSpecializedPickerSkill(skill);
+        const desc = (skill.description || "").trim();
+        return {
+          command: `/${skill.name}`,
+          value: skill.name,
+          description: specialized
+            ? desc.slice(0, 80) || "专项能力 · 输入 / 或 @ 召唤"
+            : desc.slice(0, 60),
+        };
+      });
     const handleBeforeSubmit = async (
       data: IAgentScopeRuntimeWebUIInputData,
     ): Promise<boolean | IAgentScopeRuntimeWebUISenderBeforeSubmitResult> => {
@@ -3680,6 +3821,31 @@ export default function ChatPage() {
       const draftStorageKey = getDraftStorageKey(selectedAgent, chatId);
       const submittedDraft = localStorage.getItem(draftStorageKey);
       const submittedFiles = new Set(pendingFileListRef.current);
+      const rawComposerFiles =
+        data.attachments && data.attachments.length > 0
+          ? data.attachments
+          : data.fileList ?? [];
+      const uploadStillPending = rawComposerFiles.some((file) => {
+        const status =
+          file && typeof file === "object" && "status" in file
+            ? String((file as { status?: string }).status || "")
+            : "";
+        if (status === "uploading" || status === "error") return true;
+        const response =
+          file.response && typeof file.response === "object"
+            ? (file.response as { url?: unknown })
+            : undefined;
+        const hasUrl = Boolean(
+          (typeof file.url === "string" && file.url) ||
+            (typeof response?.url === "string" && response.url) ||
+            (typeof file.thumbUrl === "string" && file.thumbUrl),
+        );
+        return !hasUrl;
+      });
+      if (uploadStillPending) {
+        message.warning(t("chat.attachments.uploadIncomplete"));
+        return false;
+      }
       const submittedAttachments = getSubmissionAttachments(data);
       const queueAttachments =
         submittedAttachments.length > 0
@@ -3690,6 +3856,12 @@ export default function ChatPage() {
               type: f.type,
               size: f.size,
             }));
+      // Composer shows chips but none resolved to uploaded URLs — block send
+      // so "分析这个表格" cannot go out as text-only while a file looks attached.
+      if (rawComposerFiles.length > 0 && queueAttachments.length === 0) {
+        message.warning(t("chat.attachments.uploadIncomplete"));
+        return false;
+      }
       const requestContext = captureRequestContext(data.context);
       let backendRunning = false;
       const queueBusy = () =>
@@ -3721,7 +3893,7 @@ export default function ChatPage() {
           return false;
         }
         const queueText = usesQwenPawBackend
-          ? prepareLoopModeMessage(prepareSkillMessage(val))
+          ? prepareLoopModeMessage(prepareComposerMessage(val))
           : val;
         useMessageQueueStore.getState().enqueue(queueKey, {
           text: queueText,
@@ -3758,7 +3930,7 @@ export default function ChatPage() {
       }
 
       const prepared = usesQwenPawBackend
-        ? beginLoopModeSubmission(prepareSkillMessage(data.query))
+        ? beginLoopModeSubmission(prepareComposerMessage(data.query))
         : data.query;
       // Consume this submission before model lookup, session allocation or
       // transport. Preserve any draft and files added during the status check.
@@ -3768,6 +3940,8 @@ export default function ChatPage() {
       pendingFileListRef.current = pendingFileListRef.current.filter(
         (file) => !submittedFiles.has(file),
       );
+      // Snapshot for customFetch in case SDK omits file parts on the wire.
+      submissionAttachmentsRef.current = queueAttachments;
       // beforeSubmit runs before the SDK allocates a new session. An empty
       // route therefore has no runtime identity yet; let the SDK supply the
       // new local ID instead of freezing a stale history/global identity.
@@ -3924,24 +4098,24 @@ export default function ChatPage() {
     const requestRenderEntry = extScalar[ChatScalar.requestRender];
     const requestRender = requestRenderEntry?.value;
     const requestOptions: IAgentScopeRuntimeWebUIOptions["request"] = {
-      render:
-        requestRenderEntry && requestRender
-          ? ({ data, fallback }) => {
-              const fallbackNode = fallback();
-              return (
-                <PluginSlotBoundary
-                  slot={ChatScalar.requestRender}
-                  pluginId={requestRenderEntry.pluginId}
-                  fallback={fallbackNode}
-                >
-                  {requestRender({
-                    data: data as unknown as ChatRequestData,
-                    fallback: () => fallbackNode,
-                  })}
-                </PluginSlotBoundary>
-              );
-            }
-          : undefined,
+      render: ({ data, fallback }) => {
+        // Peel agent-only skill/KB wrappers for the bubble; raw text still
+        // goes to the model on the wire / in session history.
+        const hostNode = renderHostUserRequest({ data, fallback });
+        if (!(requestRenderEntry && requestRender)) return hostNode;
+        return (
+          <PluginSlotBoundary
+            slot={ChatScalar.requestRender}
+            pluginId={requestRenderEntry.pluginId}
+            fallback={hostNode}
+          >
+            {requestRender({
+              data: data as unknown as ChatRequestData,
+              fallback: () => hostNode,
+            })}
+          </PluginSlotBoundary>
+        );
+      },
       prepend: sortByOrder(extLists[ChatList.requestPrepend]).map((entry) => ({
         id: entry.item.id,
         order: entry.item.order,
@@ -4194,6 +4368,19 @@ export default function ChatPage() {
                 compact={isMobile || compactSender}
               />
             )}
+            {usesQwenPawBackend && (
+              <OrgKnowledgeControl
+                className={[
+                  !isMobile && !compactSender
+                    ? styles.senderSkillControl
+                    : "",
+                  isMobile || compactSender ? styles.mobileComposerControl : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+                compact={isMobile || compactSender}
+              />
+            )}
             {usesQwenPawBackend && !isSessionTransition && (
               <SessionProjectDirectory
                 scope={sessionScope}
@@ -4247,6 +4434,8 @@ export default function ChatPage() {
                 trigger: function (props: { disabled?: boolean }) {
                   const uploadLimit =
                     useUploadLimitStore.getState().uploadMaxSizeMb;
+                  // Documents always upload to workspace; tooltip only notes
+                  // vision limits when the model lacks video multimodal.
                   const tooltipKey = multimodalCaps.supportsMultimodal
                     ? multimodalCaps.supportsImage &&
                       !multimodalCaps.supportsVideo
@@ -4562,6 +4751,7 @@ export default function ChatPage() {
             onClick: ({ data }: { data: { input?: unknown[] } }) => {
               const text = (data?.input || [])
                 .map(extractUserMessageText)
+                .map((chunk) => unwrapAgentComposerText(chunk).displayText)
                 .join("\n")
                 .trim();
               if (text) {

@@ -116,3 +116,13 @@ description: 简要说明能力及适用场景。
 通过 `publish_skill.py` 发布未经改动且已校验的 draft，将校验结果中的 `digest` 作为 `expected_digest` 传入。
 
 成功后报告 package tree、校验摘要、已执行的测试结果和调用命令 `/<name>`；冲突或失败时保留 draft 并报告错误。发布 Skill 已经完成持久化；除非用户另行明确要求，不再写入 `MEMORY.md` 或 daily memory。
+
+## 可选：发布到组织技能市场
+
+**默认只发到个人工作区。** 仅当用户在新消息里**明确要求**「发到组织库 / 上架组织技能市场 / 给同事用」时，才继续：
+
+1. 确认本地 package 路径（通常是 `<workspace>/skills/<name>`，即 `publish_skill.py` 成功后的目录）。
+2. 调用工具 `org_skill_publish`，`skill_dir` 传该绝对路径；按需填 `version_text`、`changelog`、`category`。
+3. 若返回缺 `org_skill:publish` 权限，说明需管理员开通或改用 Console → Market 手动上传，**不要**用 curl 硬打 Hub。
+4. 组织上架成功后询问是否再 `org_skill_install` 装进当前运行时；**不要**默认替其他用户安装。
+5. 装/卸/钉版本/启停的日常运维交给 `org-skill-ops`（或工具 `org_skill_*` / `skill_set_enabled`），不要塞进本 Skill 主流程。

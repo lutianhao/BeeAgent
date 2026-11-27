@@ -97,6 +97,10 @@ def initialize_hub_database(database_path: Path) -> None:
         from .org_skills.store import ensure_org_skills_schema
 
         ensure_org_skills_schema(connection)
+    with connect_hub_database(database_path) as connection:
+        from .org_kb.store import ensure_org_kb_schema
+
+        ensure_org_kb_schema(connection)
     if migrated:
         logging.getLogger(__name__).info(
             "Upgraded legacy Hub registration and model settings",

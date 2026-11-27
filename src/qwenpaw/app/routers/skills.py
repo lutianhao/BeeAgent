@@ -250,6 +250,23 @@ def _scan_error_response(exc: SkillScanError) -> JSONResponse:
     )
 
 
+def _manifest_display_name(entry: dict[str, Any], _skill_name: str) -> str:
+    """Prefer market/org display title stored on install; else empty."""
+    meta = entry.get("metadata")
+    meta_dict = meta if isinstance(meta, dict) else {}
+    bee = meta_dict.get("beeagent")
+    bee_dict = bee if isinstance(bee, dict) else {}
+    for candidate in (
+        entry.get("display_name"),
+        meta_dict.get("display_name"),
+        bee_dict.get("display_name"),
+    ):
+        text = str(candidate or "").strip()
+        if text:
+            return text
+    return ""
+
+
 class SkillSpec(BaseModel):
     """Workspace skill metadata returned by list endpoints."""
 
@@ -264,6 +281,8 @@ class SkillSpec(BaseModel):
     preload: bool = False
     tags: list[str] = Field(default_factory=list)
     last_updated: str = ""
+    # Market / org title (Chinese); empty for most official skills.
+    display_name: str = ""
 
 
 class SkillDetail(SkillSpec):
@@ -966,6 +985,7 @@ def _build_workspace_skill_specs(workspace_dir: Path) -> list[SkillSpec]:
                     preload=entry.get("preload") is True,
                     tags=entry.get("tags") or [],
                     last_updated=str(metadata.get("updated_at", "") or ""),
+                    display_name=_manifest_display_name(entry, skill_name),
                 ),
             )
         except Exception:

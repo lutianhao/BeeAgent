@@ -33,6 +33,7 @@ const EXPECTED_ROUTES = [
   ["core.debug", "/debug"],
   ["core.backups", "/backups"],
   ["core.marketplace", "/market"],
+  ["core.knowledge-base", "/knowledge-base"],
   ["core.import", "/imports"],
   ["core.app-center.embed", "/apps/:appId"],
 ] as const;

@@ -26,6 +26,6 @@
 | weike-wenan | 微课文案 |
 | yanlian-jiaoben | 演练脚本 |
 | shuju-chuli | 数据处理（Excel 打标回填并交付） |
-| yuqing-baogao | 报告生成（周报/月报/季度报/年报 Word，年报模板做减法） |
+| yuqing-baogao | 报告生成（周报/月报/季度报/年报 Word，各周期模板独立） |
 
 用户在默认对话里直接提需求即可；Agent 会按 description 匹配并加载对应 Skill。

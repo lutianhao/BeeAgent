@@ -169,6 +169,8 @@ export default defineConfig(({ command, mode }) => {
       // emptyOutDir: true,
       cssCodeSplit: true,
       sourcemap: mode !== "production" && !desktop,
+      // Avoid OOM on low-RAM hosts during post-bundle gzip size accounting.
+      reportCompressedSize: false,
       chunkSizeWarningLimit: 1000,
       rollupOptions: {
         ...(desktop ? { input: path.resolve(__dirname, "tauri.html") } : {}),

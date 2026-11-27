@@ -16,12 +16,18 @@ describe("slash suggestion keyboard events (#3274)", () => {
       expect(isSuggestionPopupOpen("/omp")).toBe(true);
     });
 
+    it("returns true when value starts with @ (skill summon) and no space", () => {
+      expect(isSuggestionPopupOpen("@koujing-xiezhuan")).toBe(true);
+      expect(isSuggestionPopupOpen("@")).toBe(true);
+    });
+
     it("returns false when value contains space after /", () => {
       expect(isSuggestionPopupOpen("/goal ")).toBe(false);
       expect(isSuggestionPopupOpen("/omp task")).toBe(false);
+      expect(isSuggestionPopupOpen("@skill ")).toBe(false);
     });
 
-    it("returns false when value does not start with /", () => {
+    it("returns false when value does not start with / or @", () => {
       expect(isSuggestionPopupOpen("hello")).toBe(false);
       expect(isSuggestionPopupOpen("")).toBe(false);
       expect(isSuggestionPopupOpen(" /goal")).toBe(false);
@@ -106,6 +112,15 @@ describe("slash suggestion keyboard events (#3274)", () => {
         makeSelectedItem("omp"),
       );
       expect(result.completionText).toBe("/omp ");
+    });
+
+    it("preserves @ marker when completing an @ summon", () => {
+      const result = shouldTabCompleteSuggestion(
+        "@kou",
+        makeSelectedItem("koujing-xiezhuan"),
+      );
+      expect(result.shouldComplete).toBe(true);
+      expect(result.completionText).toBe("@koujing-xiezhuan ");
     });
   });
 });

@@ -1,6 +1,11 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button, Input, Select, Tooltip } from "@agentscope-ai/design";
-import { Button as AntButton, message } from "antd";
+import {
+  Button as AntButton,
+  Segmented,
+  Select as AntSelect,
+  message,
+} from "antd";
 import { ChevronLeft, ChevronRight, RefreshCw, Upload } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useMarketSearch } from "./useMarketSearch";
@@ -12,12 +17,25 @@ import type {
 import type { MarketResult } from "../../../api/modules/market";
 import { ResultCard, DetailDrawer, QueueItem, EmptyState } from "./components";
 import { PublishOrgSkillModal } from "../../../components/LoopInput/PublishOrgSkillModal";
+import { InstalledSkillsPanel } from "./InstalledSkillsPanel";
+import {
+  canManageOrgSkill,
+  canPublishOrgSkill,
+  hubApi,
+  ORG_SKILL_CATEGORY_OPTIONS,
+  type HubOrgSkillDetail,
+} from "../../../api/modules/hub";
 import {
   BEEAGENT_ORG_PROVIDER_KEY,
   isBeeagentOrgSource,
-  isOrgSkillInstalled,
+  isOrgSkillOwnedBy,
+  orgSkillCapUpdateVersion,
+  parseOrgSkillIdFromUrl,
+  searchOrgMarket,
 } from "./orgMarketSource";
 import styles from "./index.module.less";
+
+type OrgShelfView = "shelf" | "installed" | "mine" | "recycle";
 
 function getCardKey(item: MarketResult) {
   return `${item.source}:${item.slug}`;
@@ -253,11 +271,166 @@ export function MarketPanel({
   const market = useMarketSearch({ preferredProviders });
   const [detailItem, setDetailItem] = useState<MarketResult | null>(null);
   const [publishOpen, setPublishOpen] = useState(false);
+  const [editSkill, setEditSkill] = useState<HubOrgSkillDetail | null>(null);
   const [uninstallingKey, setUninstallingKey] = useState<string | null>(null);
-  const showOrgPublish = [...market.selectedProviderKeys].some((key) =>
+  const [canPublish, setCanPublish] = useState(false);
+  const [canManage, setCanManage] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [orgCategory, setOrgCategory] = useState<string>("");
+  const [orgVisibility, setOrgVisibility] = useState<string>("");
+  const [orgView, setOrgView] = useState<OrgShelfView>("shelf");
+  const [scopedOrgResults, setScopedOrgResults] = useState<MarketResult[] | null>(
+    null,
+  );
+  const [scopedOrgLoading, setScopedOrgLoading] = useState(false);
+  const orgSourceSelected = [...market.selectedProviderKeys].some((key) =>
     isBeeagentOrgSource(key),
   );
+  const showOrgPublish = orgSourceSelected && canPublish;
+  const orgScopedView = orgView === "mine" || orgView === "recycle";
+  const orgOnlyEmpty =
+    orgSourceSelected &&
+    market.selectedProviderKeys.size === 1 &&
+    !market.query.trim() &&
+    !market.category &&
+    !orgCategory &&
+    !orgVisibility &&
+    !orgScopedView;
   const refreshedInstallIds = useRef(new Set<string>());
+
+  const reloadScopedOrg = useCallback(async () => {
+    if (!orgSourceSelected || !orgScopedView) {
+      setScopedOrgResults(null);
+      return;
+    }
+    setScopedOrgLoading(true);
+    try {
+      const res = await searchOrgMarket(market.query, {
+        category: orgCategory || undefined,
+        mine: orgView === "mine",
+        recycleOnly: orgView === "recycle",
+        includeDeleted: orgView === "recycle",
+        includeDelisted: true,
+      });
+      let items = res.results;
+      if (orgVisibility) {
+        items = items.filter((item) => {
+          const key = String(item.stats?.visibility_key || "");
+          if (key) return key === orgVisibility;
+          const label =
+            orgVisibility === "personal"
+              ? "仅自己"
+              : orgVisibility === "public"
+                ? "公开"
+                : "组织内部";
+          return String(item.stats?.visibility || "") === label;
+        });
+      }
+      setScopedOrgResults(items);
+    } catch (err) {
+      message.error(
+        err instanceof Error ? err.message : "加载我的技能失败",
+      );
+      setScopedOrgResults([]);
+    } finally {
+      setScopedOrgLoading(false);
+    }
+  }, [
+    market.query,
+    orgCategory,
+    orgScopedView,
+    orgSourceSelected,
+    orgView,
+    orgVisibility,
+  ]);
+
+  useEffect(() => {
+    void reloadScopedOrg();
+  }, [reloadScopedOrg]);
+
+  const displayResults = useMemo(() => {
+    if (!orgSourceSelected) return market.results;
+    if (orgScopedView) return scopedOrgResults ?? [];
+    return market.results.filter((item) => {
+      if (!isBeeagentOrgSource(item.source)) return true;
+      if (
+        orgCategory &&
+        String(item.stats?.category_key || "other") !== orgCategory
+      ) {
+        return false;
+      }
+      if (orgVisibility) {
+        const key = String(item.stats?.visibility_key || "");
+        if (key) {
+          if (key !== orgVisibility) return false;
+        } else {
+          const label =
+            orgVisibility === "personal"
+              ? "仅自己"
+              : orgVisibility === "public"
+                ? "公开"
+                : "组织内部";
+          if (String(item.stats?.visibility || "") !== label) return false;
+        }
+      }
+      return true;
+    });
+  }, [
+    market.results,
+    orgCategory,
+    orgVisibility,
+    orgSourceSelected,
+    orgScopedView,
+    scopedOrgResults,
+  ]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void Promise.all([hubApi.meEntitlements(), hubApi.me()])
+      .then(([ent, me]) => {
+        if (cancelled) return;
+        setCurrentUserId(me.user_id);
+        setCanPublish(
+          Boolean(ent.is_hub_admin) || canPublishOrgSkill(ent.permissions),
+        );
+        setCanManage(
+          Boolean(ent.is_hub_admin) || canManageOrgSkill(ent.permissions),
+        );
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setCanPublish(false);
+        setCanManage(false);
+        setCurrentUserId(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const openCreatePublish = useCallback(() => {
+    setEditSkill(null);
+    setPublishOpen(true);
+  }, []);
+
+  const openRepublish = useCallback(
+    async (item: MarketResult) => {
+      const skillId = parseOrgSkillIdFromUrl(item.source_url) || item.slug;
+      try {
+        const detail = await hubApi.getOrgSkill(skillId);
+        setEditSkill(detail);
+        setDetailItem(null);
+        setPublishOpen(true);
+      } catch (err) {
+        message.error(
+          err instanceof Error
+            ? err.message
+            : t("market.republishFailed", { defaultValue: "无法打开更新发布" }),
+        );
+      }
+    },
+    [t],
+  );
 
   useEffect(() => {
     if (
@@ -325,15 +498,11 @@ export function MarketPanel({
 
   const handleDetailInstall = useCallback(() => {
     const current = detailItemRef.current;
-    if (current) {
-      if (isOrgSkillInstalled(current)) {
-        void onUninstall(current);
-        return;
-      }
-      onInstall(current);
-      setDetailItem(null);
-    }
-  }, [onInstall, onUninstall]);
+    if (!current) return;
+    // Install / upgrade always enqueue; uninstall is a separate footer button.
+    onInstall(current);
+    setDetailItem(null);
+  }, [onInstall]);
 
   const handleDetailClose = useCallback(() => {
     setDetailItem(null);
@@ -361,31 +530,96 @@ export function MarketPanel({
     <div className={styles.marketPage}>
       <div className={styles.content}>
         <div className={styles.toolbar}>
-          <CategoryChips
-            categories={market.categories}
-            active={market.category}
-            onSelect={market.setCategory}
-          />
-          <div className={styles.filters}>
-            <Input.Search
-              className={styles.searchInput}
-              placeholder={t("market.searchPlaceholder")}
-              allowClear
-              value={market.query}
-              onChange={(e) => market.setQuery(e.target.value)}
-              aria-label={t("market.searchPlaceholder")}
+          {orgSourceSelected ? (
+            <Segmented
+              value={orgView}
+              onChange={(v) => setOrgView(v as OrgShelfView)}
+              options={[
+                {
+                  label: t("market.orgShelf", { defaultValue: "货架" }),
+                  value: "shelf",
+                },
+                {
+                  label: t("market.orgMine", { defaultValue: "我的" }),
+                  value: "mine",
+                },
+                {
+                  label: t("market.orgRecycle", { defaultValue: "回收站" }),
+                  value: "recycle",
+                },
+                {
+                  label: t("market.orgInstalled", { defaultValue: "已安装" }),
+                  value: "installed",
+                },
+              ]}
+              style={{ marginBottom: 12 }}
             />
-            <div className={styles.providerActions}>
+          ) : null}
+          {(!orgSourceSelected || orgView === "shelf") && (
+            <CategoryChips
+              categories={market.categories}
+              active={market.category}
+              onSelect={market.setCategory}
+            />
+          )}
+          <div className={styles.filters}>
+            {(!orgSourceSelected ||
+              orgView === "shelf" ||
+              orgView === "mine" ||
+              orgView === "recycle") && (
+              <Input.Search
+                className={styles.searchInput}
+                placeholder={t("market.searchPlaceholder")}
+                allowClear
+                value={market.query}
+                onChange={(e) => market.setQuery(e.target.value)}
+                aria-label={t("market.searchPlaceholder")}
+              />
+            )}
+            <div className={styles.providerFilters}>
               <ProviderSelect
                 providers={market.providers}
                 selectedKeys={market.selectedProviderKeys}
                 onSelect={market.setSelectedProviders}
               />
+              {orgSourceSelected &&
+              (orgView === "shelf" ||
+                orgView === "mine" ||
+                orgView === "recycle") ? (
+                <>
+                  <AntSelect
+                    allowClear
+                    placeholder={t("market.orgCategory", {
+                      defaultValue: "业务域",
+                    })}
+                    style={{ minWidth: 120 }}
+                    value={orgCategory || undefined}
+                    options={ORG_SKILL_CATEGORY_OPTIONS}
+                    onChange={(value) => setOrgCategory(value || "")}
+                  />
+                  {orgView !== "recycle" ? (
+                    <AntSelect
+                      allowClear
+                      placeholder={t("market.orgVisibility", {
+                        defaultValue: "可见性",
+                      })}
+                      style={{ minWidth: 120 }}
+                      value={orgVisibility || undefined}
+                      options={[
+                        { value: "personal", label: "仅自己" },
+                        { value: "org", label: "组织内部" },
+                        { value: "public", label: "公开" },
+                      ]}
+                      onChange={(value) => setOrgVisibility(value || "")}
+                    />
+                  ) : null}
+                </>
+              ) : null}
               {showOrgPublish && (
                 <AntButton
                   type="default"
                   icon={<Upload size={14} />}
-                  onClick={() => setPublishOpen(true)}
+                  onClick={openCreatePublish}
                 >
                   {t("chat.skillPicker.orgMarketPublish")}
                 </AntButton>
@@ -394,8 +628,11 @@ export function MarketPanel({
                 type="default"
                 className={styles.refreshButton}
                 icon={<RefreshCw size={14} />}
-                onClick={market.refresh}
-                disabled={market.loading}
+                onClick={() => {
+                  if (orgScopedView) void reloadScopedOrg();
+                  else market.refresh();
+                }}
+                disabled={orgScopedView ? scopedOrgLoading : market.loading}
                 aria-label={t("common.refresh")}
                 title={t("common.refresh")}
               />
@@ -403,89 +640,169 @@ export function MarketPanel({
           </div>
         </div>
 
-        {market.query.trim() && !market.loading && !market.globalError && (
-          <div className={styles.searchHint}>
-            {t("market.searchResult", {
-              keyword: market.query.trim(),
-              count: market.totalCount,
-            })}
+        {orgSourceSelected && orgView === "recycle" ? (
+          <div
+            style={{
+              marginBottom: 12,
+              color: "var(--color-text-secondary, #666)",
+            }}
+          >
+            回收站内技能 7 天内可恢复；到期后由系统自动永久清除。
           </div>
-        )}
+        ) : null}
 
-        {browseHintLabel && (
-          <div className={styles.browseHint}>
-            {t("market.browseHint", { providers: browseHintLabel })}
-          </div>
-        )}
-
-        {market.globalError && (
-          <div className={styles.errorRow}>{market.globalError}</div>
-        )}
-        {market.errors.map((err) => {
-          const provider = market.providers.find((p) => p.key === err.provider);
-          const label = provider?.label ?? err.provider;
-          return (
-            <div className={styles.errorRow} key={err.provider}>
-              <strong>{label}</strong>: {err.message}
-            </div>
-          );
-        })}
-
-        {market.providersLoaded && market.providers.length === 0 ? (
-          <EmptyState text={t("market.noHubs")} />
-        ) : market.loading && market.results.length === 0 ? (
-          <EmptyState text={t("common.loading")} />
-        ) : market.results.length === 0 &&
-          (market.globalError || market.errors.length > 0) ? (
-          <EmptyState text={t("market.noResults")}>
-            <Button onClick={market.retry} loading={market.loading}>
-              {t("market.retry")}
-            </Button>
-          </EmptyState>
-        ) : market.results.length === 0 ? (
-          <EmptyState text={t("market.noResults")} />
+        {orgSourceSelected && orgView === "installed" ? (
+          <InstalledSkillsPanel
+            onUninstallOrg={async (skillId) => {
+              try {
+                await hubApi.uninstallOrgSkill(skillId);
+                message.success(t("market.uninstall"));
+                market.refresh();
+              } catch (err) {
+                message.error(
+                  err instanceof Error ? err.message : t("market.uninstall"),
+                );
+              }
+            }}
+          />
         ) : (
           <>
-            <div className={styles.resultsGrid}>
-              {market.results.map((item) => (
-                <ResultCard
-                  key={getCardKey(item)}
-                  item={item}
-                  onInstall={() => onInstall(item)}
-                  onUninstall={
-                    isBeeagentOrgSource(item.source)
-                      ? () => void onUninstall(item)
-                      : undefined
-                  }
-                  uninstalling={uninstallingKey === getCardKey(item)}
-                  onOpenDetail={() => setDetailItem(item)}
-                />
-              ))}
-            </div>
-            <div className={styles.loadMoreRow}>
-              {market.hasMore && market.autoLoadBlocked ? (
-                <Button onClick={market.loadMore} loading={market.loading}>
-                  {t("market.loadMore")}
+            {market.query.trim() && !market.loading && !market.globalError && (
+              <div className={styles.searchHint}>
+                {t("market.searchResult", {
+                  keyword: market.query.trim(),
+                  count: market.totalCount,
+                })}
+              </div>
+            )}
+
+            {browseHintLabel && (
+              <div className={styles.browseHint}>
+                {t("market.browseHint", { providers: browseHintLabel })}
+              </div>
+            )}
+
+            {market.globalError && (
+              <div className={styles.errorRow}>{market.globalError}</div>
+            )}
+            {market.errors.map((err) => {
+              const provider = market.providers.find(
+                (p) => p.key === err.provider,
+              );
+              const label = provider?.label ?? err.provider;
+              return (
+                <div className={styles.errorRow} key={err.provider}>
+                  <strong>{label}</strong>: {err.message}
+                </div>
+              );
+            })}
+
+            {market.providersLoaded && market.providers.length === 0 ? (
+              <EmptyState text={t("market.noHubs")} />
+            ) : (orgScopedView ? scopedOrgLoading : market.loading) &&
+              displayResults.length === 0 ? (
+              <EmptyState text={t("common.loading")} />
+            ) : displayResults.length === 0 &&
+              !orgScopedView &&
+              (market.globalError || market.errors.length > 0) ? (
+              <EmptyState text={t("market.noResults")}>
+                <Button onClick={market.retry} loading={market.loading}>
+                  {t("market.retry")}
                 </Button>
-              ) : market.hasMore ? (
-                <LoadMoreSentinel
-                  key={market.results.length}
-                  onVisible={market.autoLoadMore}
-                />
-              ) : (
-                <span className={styles.noMoreText}>
-                  {t("market.noMoreResults")}
-                </span>
-              )}
-            </div>
+              </EmptyState>
+            ) : displayResults.length === 0 ? (
+              <EmptyState
+                text={
+                  orgView === "recycle"
+                    ? t("market.orgRecycleEmpty", {
+                        defaultValue: "回收站为空。",
+                      })
+                    : orgView === "mine"
+                      ? t("market.orgMineEmpty", {
+                          defaultValue:
+                            "你还没有发布技能。可先以「仅自己」发布，验证后再上架到组织。",
+                        })
+                      : orgOnlyEmpty
+                        ? t("market.orgEmpty", {
+                            defaultValue:
+                              "组织专业能力货架暂无技能。有发布权限时可上传完整技能包，供同事安装使用。",
+                          })
+                        : t("market.noResults")
+                }
+              >
+                {orgOnlyEmpty && showOrgPublish ? (
+                  <AntButton type="primary" onClick={openCreatePublish}>
+                    {t("chat.skillPicker.orgMarketPublish")}
+                  </AntButton>
+                ) : null}
+              </EmptyState>
+            ) : (
+              <>
+                <div className={styles.resultsGrid}>
+                  {displayResults.map((item) => {
+                    const mine =
+                      isBeeagentOrgSource(item.source) &&
+                      isOrgSkillOwnedBy(item, currentUserId);
+                    const canRepublish =
+                      isBeeagentOrgSource(item.source) &&
+                      (orgSkillCapUpdateVersion(item) ||
+                        (Boolean(canPublish) && mine));
+                    return (
+                      <ResultCard
+                        key={getCardKey(item)}
+                        item={item}
+                        onInstall={() => onInstall(item)}
+                        onUninstall={
+                          isBeeagentOrgSource(item.source)
+                            ? () => void onUninstall(item)
+                            : undefined
+                        }
+                        uninstalling={uninstallingKey === getCardKey(item)}
+                        onOpenDetail={() => setDetailItem(item)}
+                        isMine={mine}
+                        canRepublish={canRepublish}
+                        onRepublish={
+                          canRepublish
+                            ? () => {
+                                void openRepublish(item);
+                              }
+                            : undefined
+                        }
+                      />
+                    );
+                  })}
+                </div>
+                <div className={styles.loadMoreRow}>
+                  {market.hasMore && market.autoLoadBlocked ? (
+                    <Button onClick={market.loadMore} loading={market.loading}>
+                      {t("market.loadMore")}
+                    </Button>
+                  ) : market.hasMore ? (
+                    <LoadMoreSentinel
+                      key={market.results.length}
+                      onVisible={market.autoLoadMore}
+                    />
+                  ) : (
+                    <span className={styles.noMoreText}>
+                      {t("market.noMoreResults")}
+                    </span>
+                  )}
+                </div>
+              </>
+            )}
           </>
         )}
       </div>
 
       <PublishOrgSkillModal
         open={publishOpen}
-        onClose={() => setPublishOpen(false)}
+        editSkill={editSkill}
+        onClose={() => {
+          setPublishOpen(false);
+          setEditSkill(null);
+        }}
         onPublished={() => {
+          setEditSkill(null);
           market.setSelectedProviders([BEEAGENT_ORG_PROVIDER_KEY]);
           market.refresh();
         }}
@@ -502,6 +819,25 @@ export function MarketPanel({
         uninstalling={
           detailItem ? uninstallingKey === getCardKey(detailItem) : false
         }
+        canRepublish={
+          Boolean(detailItem) &&
+          (orgSkillCapUpdateVersion(detailItem!) ||
+            (Boolean(canPublish) &&
+              isOrgSkillOwnedBy(detailItem!, currentUserId)))
+        }
+        onRepublish={
+          detailItem
+            ? () => {
+                void openRepublish(detailItem);
+              }
+            : undefined
+        }
+        canManage={canManage}
+        onOpsChanged={() => {
+          if (orgScopedView) void reloadScopedOrg();
+          else market.refresh();
+          setDetailItem(null);
+        }}
         onClose={handleDetailClose}
       />
     </div>

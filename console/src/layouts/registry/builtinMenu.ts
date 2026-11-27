@@ -29,6 +29,7 @@ import {
   Bug as SparkDebugLine,
   Download as SparkDownloadLine,
   Mail as SparkEmailLine,
+  BookOpen as SparkBookOpenLine,
   Folder as SparkFile2Line,
   History as SparkHistoryLine,
   Globe as SparkInternetLine,
@@ -74,6 +75,14 @@ export const BUILTIN_MENU: MenuItem[] = [
     icon: SparkMyApplicationLine,
     route: "core.marketplace",
     order: 15,
+  },
+  {
+    id: "core.knowledge-base",
+    location: "primary.agentScoped",
+    label: navLabel("nav.knowledgeBase", "Knowledge Base"),
+    icon: SparkBookOpenLine,
+    route: "core.knowledge-base",
+    order: 16,
   },
   {
     id: "core.import",

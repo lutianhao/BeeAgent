@@ -116,3 +116,13 @@ Fix reported static or security errors in the draft and validate again. Testing 
 Publish the unchanged validated draft with `publish_skill.py`, using the validation result's `digest` as `expected_digest`.
 
 On success, report the package tree, validation summary, test result when one ran, and invocation `/<name>`. On conflict or failure, retain the draft and report the error. Publishing a Skill is already persistent; do not also write it to `MEMORY.md` or daily memory unless the user separately asks.
+
+## Optional: publish to the organization skill market
+
+**Default is workspace-only.** Continue only when a new user message **explicitly** asks to publish to the org market / share with colleagues:
+
+1. Confirm the local package path (usually `<workspace>/skills/<name>` after a successful `publish_skill.py`).
+2. Call `org_skill_publish` with that absolute `skill_dir`; set `version_text`, `changelog`, and `category` as needed.
+3. If the tool reports missing `org_skill:publish`, tell the user to ask an admin or use Console → Market — **do not** curl the Hub API.
+4. After a successful org publish, ask whether to `org_skill_install` into this runtime; **do not** install for other users by default.
+5. Day-to-day install / pin / enable-disable belongs to `org-skill-ops` (tools `org_skill_*` / `skill_set_enabled`), not this Skill's main flow.

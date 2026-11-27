@@ -1,0 +1,112 @@
+# BeeAgent Hub — 迭代期用户重建 / 同步清单
+#
+# 每次 `manage.sh restart` / `sync-skills --force` / `sync-users` 会先按本文件
+# 重申 RBAC，再把官方 Skills / 工具 ACL 刷进各用户 runtime。
+#
+# 改权限：先改本文件 → 再跑同步；不要只在 Console 里临时勾选后忘记回写。
+# schema: 1
+
+schema_version: 1
+phase: iteration
+notes: |
+  当前处于功能迭代：组织技能市场、知识库、RBAC 会频繁改。
+  同步目标是「声明式期望态」可重复落地，避免个别用户 custom 角色漂移。
+
+# 系统角色期望（ensure）：与 catalog.BUILTIN_ROLES 对齐，apply 时会 upsert
+system_roles:
+  - bee.member
+  - bee.restricted
+  - bee.operator
+
+# 全员默认：未单独列出的登录用户若无绑定，将落到 default_role
+default_role: bee.member
+
+users:
+  admin:
+    hub_role: admin
+    # Hub 超管旁路 RBAC；仍同步全部官方 Skills / 工具到其 runtime
+    rbac_roles: []
+    sync:
+      official_skills: all
+      official_tools: all
+      deepseek_defaults: true
+      persona_defaults: true
+    ensure_org_skill_installs: []
+    refresh_notes:
+      - 重建后确认 Console 静态资源已 rsync
+      - 可用运营 API / 审计（hub_audit_events）自测
+
+  lutianhao:
+    hub_role: user
+    # 迭代期改回完整成员（曾用 custom.* 做过细粒度试验，易漏 skill/tool）
+    rbac_roles: [bee.member]
+    sync:
+      official_skills: all
+      official_tools: all
+      deepseek_defaults: true
+      persona_defaults: true
+    ensure_org_skill_installs:
+      - bank-yuqing-daily-docx
+    refresh_notes:
+      - 主测账号：技能市场发布 / 安装 / 分享 / 沙箱 org_skill_* + kb_search
+      - 需 org_skill:publish + tool:use:org_skill_*（bee.member 已含 tool:use:*）
+      - 自测技能 jinri-yunshi / selftest-* 保留在货架，不强制给他人安装
+
+  tianmeng:
+    hub_role: user
+    rbac_roles: [bee.member]
+    sync:
+      official_skills: all
+      official_tools: all
+      deepseek_defaults: true
+      persona_defaults: true
+    ensure_org_skill_installs:
+      - bank-yuqing-daily-docx
+    refresh_notes:
+      - 遂宁银行日报技能 bank-yuqing-daily-docx 的 owner
+      - 发版/下架走 ownership；他人只能安装
+
+  dengshan:
+    hub_role: user
+    rbac_roles: [bee.member]
+    sync:
+      official_skills: all
+      official_tools: all
+      deepseek_defaults: true
+      persona_defaults: true
+    ensure_org_skill_installs: []
+    refresh_notes:
+      - 标准成员：官方 Skills + 组织技能市场 + KB 读写
+
+  wangtao:
+    hub_role: user
+    rbac_roles: [bee.member]
+    sync:
+      official_skills: all
+      official_tools: all
+      deepseek_defaults: true
+      persona_defaults: true
+    ensure_org_skill_installs:
+      - demo-org-skill
+    refresh_notes:
+      - 标准成员；保留 demo-org-skill 安装用于冒烟
+
+  chenyanan:
+    hub_role: user
+    rbac_roles: [bee.member]
+    sync:
+      official_skills: all
+      official_tools: all
+      deepseek_defaults: true
+      persona_defaults: true
+    ensure_org_skill_installs:
+      - bank-yuqing-daily-docx
+    refresh_notes:
+      - 标准成员；已装遂宁银行日报技能
+
+# 同步流水线（manage.sh sync-users / restart 内嵌）
+pipeline:
+  - apply_rbac_from_roster
+  - provision_runtime_defaults
+  - sync_official_skills_force
+  - ensure_org_skill_installs

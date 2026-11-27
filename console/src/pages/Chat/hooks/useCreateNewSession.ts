@@ -8,6 +8,8 @@ import { rotatePendingComposer } from "../chatInputDraft";
 import { clearPendingModel } from "../../../features/session-settings/sessionModel";
 import { dispatchSessionModelChanged } from "../../../features/session-settings/sessionModelEvents";
 import { clearPendingThinking } from "../../../features/thinking/sessionThinkingApi";
+import { clearSelectedSkill } from "../../../stores/skillPickerStore";
+import { useOrgKbModeStore } from "../../../stores/orgKbModeStore";
 
 /**
  * Open the blank composer. The SDK allocates a backend session on first send;
@@ -25,6 +27,9 @@ export function useCreateNewSession(): () => Promise<void> {
     const agents = useAgentStore.getState();
     clearPendingModel(agents.selectedAgent, "new");
     clearPendingThinking(agents.selectedAgent, "new");
+    // Composer toggles are global; reset so a new draft starts unselected.
+    clearSelectedSkill();
+    useOrgKbModeStore.getState().setEnabled(false);
     agents.removeLastChatId(agents.selectedAgent);
     setCurrentSessionId(undefined);
     navigate(CHAT_BASE_PATH, { replace: true });

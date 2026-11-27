@@ -74,6 +74,10 @@ import {
   orderSidebarEntries,
 } from "./registry/sidebarEntries";
 import { hubApi } from "../api/modules/hub";
+import {
+  filterMenuForConsoleProfile,
+  useConsoleProfile,
+} from "../hooks/useConsoleProfile";
 import AppBrand from "./AppBrand";
 import { AgentStatusIndicator } from "../components/AgentStatusIndicator";
 import { getAgentDisplayName } from "../utils/agentDisplayName";
@@ -231,10 +235,14 @@ export default function Sidebar({
   const rawSettingsMenu = useMenuItems("primary.settings");
   const routes = useRoutes();
 
-  const visibleAgentMenu = useMemo(
-    () => filterMenuForAgentCapabilities(rawAgentMenu, backendCapabilities),
-    [backendCapabilities, rawAgentMenu],
-  );
+  const { profile: consoleProfile } = useConsoleProfile();
+  const visibleAgentMenu = useMemo(() => {
+    const byAgent = filterMenuForAgentCapabilities(
+      rawAgentMenu,
+      backendCapabilities,
+    );
+    return filterMenuForConsoleProfile(byAgent, consoleProfile);
+  }, [backendCapabilities, consoleProfile, rawAgentMenu]);
   const focusItemIdSet = useMemo(() => new Set(focusItemIds), [focusItemIds]);
   const hiddenPluginItemIdSet = useMemo(
     () => new Set(hiddenPluginItemIds),
@@ -251,14 +259,18 @@ export default function Sidebar({
       ),
     [focusItemIdSet, hiddenPluginItemIdSet, visibleAgentMenu],
   );
+  const visibleSettingsMenu = useMemo(
+    () => filterMenuForConsoleProfile(rawSettingsMenu, consoleProfile),
+    [consoleProfile, rawSettingsMenu],
+  );
   const selectedSettingsMenu = useMemo(
     () =>
       filterSidebarMenuItems(
-        rawSettingsMenu,
+        visibleSettingsMenu,
         focusItemIdSet,
         hiddenPluginItemIdSet,
       ),
-    [focusItemIdSet, hiddenPluginItemIdSet, rawSettingsMenu],
+    [focusItemIdSet, hiddenPluginItemIdSet, visibleSettingsMenu],
   );
 
   const selectedFlatNav = useMemo(() => {

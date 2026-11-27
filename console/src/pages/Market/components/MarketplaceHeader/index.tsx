@@ -9,9 +9,11 @@ export type MarketplaceSection = "apps" | "plugins" | "skills" | "community";
 
 const SECTION_PATHS: Record<MarketplaceSection, string> = {
   community: "/market?tab=community",
-  apps: "/market",
+  // Keep Apps on an explicit tab so bare /market can land on org skills.
+  apps: "/market?tab=apps",
   plugins: "/market?tab=plugins",
-  skills: "/market?tab=skills",
+  // BeeAgent: skills market defaults to the org library first.
+  skills: "/market?tab=skills&source=beeagent-org",
 };
 
 interface MarketplaceHeaderProps {

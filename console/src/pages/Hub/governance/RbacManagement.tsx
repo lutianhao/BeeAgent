@@ -42,7 +42,16 @@ const OFFICIAL_SKILL_OPTIONS = [
   "yuqing-baogao",
 ];
 
-const OFFICIAL_TOOL_OPTIONS = ["web_search", "web_fetch"];
+const OFFICIAL_TOOL_OPTIONS = [
+  "web_search",
+  "web_fetch",
+  "kb_search",
+  "org_skill_list",
+  "org_skill_publish",
+  "org_skill_install",
+  "org_skill_pin",
+  "skill_set_enabled",
+];
 
 function limitLabel(value: number | null | undefined, unlimited: string) {
   if (value === undefined || value === null || value < 0) return unlimited;
@@ -181,7 +190,16 @@ export default function RbacManagement(props: Props) {
     setSelectedSkills(expandSkills(permissions));
     setSelectedTools(expandTools(permissions));
     setExtraPerms(
-      permissions.filter((p) => p === "rbac:manage" || p === "quota:bypass"),
+      permissions.filter(
+        (p) =>
+          p === "rbac:manage" ||
+          p === "quota:bypass" ||
+          p === "org_skill:publish" ||
+          p === "org_skill:manage" ||
+          p === "org_kb:use" ||
+          p === "org_kb:write" ||
+          p === "org_kb:manage",
+      ),
     );
     setAclDirty(false);
   }, []);
@@ -574,8 +592,24 @@ export default function RbacManagement(props: Props) {
                           options={[
                             { label: "rbac:manage", value: "rbac:manage" },
                             { label: "quota:bypass", value: "quota:bypass" },
+                            {
+                              label: "org_skill:publish（可上架/发版自己的技能）",
+                              value: "org_skill:publish",
+                            },
+                            {
+                              label: "org_skill:manage（代管任意技能：精选/分类）",
+                              value: "org_skill:manage",
+                            },
+                            { label: "org_kb:use（检索组织知识库）", value: "org_kb:use" },
+                            { label: "org_kb:write（上传知识库）", value: "org_kb:write" },
+                            { label: "org_kb:manage（管理知识库）", value: "org_kb:manage" },
                           ]}
-                          style={{ display: "flex", gap: 16, marginTop: 10 }}
+                          style={{
+                            display: "flex",
+                            flexWrap: "wrap",
+                            gap: 16,
+                            marginTop: 10,
+                          }}
                         />
                       </div>
 
@@ -841,6 +875,17 @@ export default function RbacManagement(props: Props) {
                 { label: "tool:use:*", value: "tool:use:*" },
                 { label: "rbac:manage", value: "rbac:manage" },
                 { label: "quota:bypass", value: "quota:bypass" },
+                {
+                  label: "org_skill:publish（可上架/发版自己的技能）",
+                  value: "org_skill:publish",
+                },
+                {
+                  label: "org_skill:manage（代管任意技能：精选/分类）",
+                  value: "org_skill:manage",
+                },
+                { label: "org_kb:use（检索组织知识库）", value: "org_kb:use" },
+                { label: "org_kb:write（上传知识库）", value: "org_kb:write" },
+                { label: "org_kb:manage（管理知识库）", value: "org_kb:manage" },
                 ...OFFICIAL_SKILL_OPTIONS.map((s) => ({
                   label: `skill:use:${s}`,
                   value: `skill:use:${s}`,

@@ -8,6 +8,7 @@ import mimetypes
 import os
 import shutil
 import socket
+import sqlite3
 import subprocess
 import sys
 from abc import ABC, abstractmethod
@@ -93,6 +94,19 @@ class ProcessIsolator(ABC):
     def release(self, runtime_id: str) -> None:
         """Release platform resources retained for one runtime."""
         del runtime_id
+
+
+def _ensure_sqlite_wal_sidecars(database_path: Path) -> None:
+    """Create WAL/SHM sidecars so bubblewrap can bind them for shared writes."""
+    try:
+        connection = sqlite3.connect(str(database_path), timeout=5)
+        try:
+            connection.execute("PRAGMA journal_mode=WAL")
+            connection.execute("PRAGMA wal_checkpoint(PASSIVE)")
+        finally:
+            connection.close()
+    except sqlite3.Error:
+        return
 
 
 def _runtime_root(record: RuntimeRecord) -> Path:
@@ -194,6 +208,38 @@ class LinuxBubblewrapIsolator(ProcessIsolator):
             (record.backup_dir, "/backups"),
         ):
             args.extend(["--bind", str(source.resolve()), target])
+        # Org KB / org skill tools use Hub control.db via QWENPAW_HUB_CONTROL_DB.
+        # Personal runtimes only see working/secrets/backups under bwrap, so the
+        # host hub dir is otherwise invisible. Mount only the shared market/KB
+        # surfaces (never runtimes/ or secrets/), then rewrite the env.
+        # Without this, org_skill_* / kb_search report "not configured".
+        hub_control_db = str(environment.get("QWENPAW_HUB_CONTROL_DB") or "").strip()
+        sandbox_hub_db = ""
+        if hub_control_db:
+            host_db = Path(hub_control_db).expanduser().resolve()
+            if host_db.is_file():
+                hub_dir = host_db.parent
+                sandbox_hub_db = f"/hub/{host_db.name}"
+                args.extend(["--dir", "/hub"])
+                args.extend(["--bind", str(host_db), sandbox_hub_db])
+                # WAL mode needs host-visible -wal/-shm siblings under /hub.
+                _ensure_sqlite_wal_sidecars(host_db)
+                for suffix in ("-wal", "-shm", "-journal"):
+                    sibling = Path(f"{host_db}{suffix}")
+                    if sibling.exists():
+                        args.extend(
+                            [
+                                "--bind",
+                                str(sibling.resolve()),
+                                f"/hub/{sibling.name}",
+                            ],
+                        )
+                for name in ("org_skills", "org_kb"):
+                    shared = hub_dir / name
+                    if shared.is_dir():
+                        args.extend(
+                            ["--bind", str(shared.resolve()), f"/hub/{name}"],
+                        )
         args.extend(
             [
                 "--dev",
@@ -219,6 +265,8 @@ class LinuxBubblewrapIsolator(ProcessIsolator):
                 "QWENPAW_BACKUP_DIR": "/backups",
             },
         )
+        if sandbox_hub_db:
+            sandbox_environment["QWENPAW_HUB_CONTROL_DB"] = sandbox_hub_db
         self._probe(args, runtime_root, sandbox_environment)
         return IsolatedLaunch(args, sandbox_environment)
 
@@ -355,6 +403,16 @@ class MacOSSeatbeltIsolator(ProcessIsolator):
                 f"\n(allow network-outbound "
                 f'(remote ip "localhost:{model_port}"))'
             )
+        # Same Hub control.db access as Linux bwrap: org_skill_* / kb_search.
+        hub_control_db = str(
+            environment.get("QWENPAW_HUB_CONTROL_DB") or "",
+        ).strip()
+        if hub_control_db:
+            host_db = Path(hub_control_db).expanduser().resolve()
+            if host_db.is_file():
+                hub_dir = self._escape(host_db.parent)
+                profile += f'\n(allow file-read* (subpath "{hub_dir}"))'
+                profile += f'\n(allow file-write* (subpath "{hub_dir}"))'
         profile_path.write_text(profile, encoding="utf-8")
         try:
             os.chmod(profile_path, 0o600)

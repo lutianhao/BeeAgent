@@ -399,7 +399,13 @@ class LocalProcessRuntimeProvisioner(RuntimeProvisioner):
         runtime_token = credentials.get("QWENPAW_RUNTIME_INTERNAL_TOKEN")
         if runtime_token:
             environment["QWENPAW_RUNTIME_INTERNAL_TOKEN"] = runtime_token
-        for name in ("QWENPAW_HUB_MODEL_URL", "QWENPAW_HUB_MODEL_TOKEN"):
+        for name in (
+            "QWENPAW_HUB_MODEL_URL",
+            "QWENPAW_HUB_MODEL_TOKEN",
+            "QWENPAW_HUB_CONTROL_DB",
+            "QWENPAW_HUB_USER_ID",
+            "QWENPAW_HUB_USERNAME",
+        ):
             if credentials.get(name):
                 environment[name] = credentials[name]
         environment["QWENPAW_RUNTIME_PROVISIONER"] = "local"

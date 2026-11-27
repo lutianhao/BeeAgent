@@ -6,12 +6,12 @@
  */
 
 /**
- * Returns true when the slash-suggestion popup should be considered open.
- * The popup is open when the textarea value starts with "/" and contains
- * no whitespace after the slash (i.e. the user is still typing the command).
+ * Returns true when the slash/at-suggestion popup should be considered open.
+ * Open when the textarea starts with ``/`` or ``@`` and has no whitespace yet
+ * (i.e. the user is still typing the command / skill name).
  */
 export function isSuggestionPopupOpen(value: string): boolean {
-  return value.startsWith("/") && !/\s/.test(value.slice(1));
+  return /^[/@]/.test(value) && !/\s/.test(value.slice(1));
 }
 
 /**
@@ -53,5 +53,9 @@ export function shouldTabCompleteSuggestion(
   if (!selectedValue) {
     return { shouldComplete: false };
   }
-  return { shouldComplete: true, completionText: `/${selectedValue} ` };
+  const marker = textareaValue.startsWith("@") ? "@" : "/";
+  return {
+    shouldComplete: true,
+    completionText: `${marker}${selectedValue} `,
+  };
 }

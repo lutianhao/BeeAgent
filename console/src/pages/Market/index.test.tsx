@@ -74,7 +74,7 @@ function NavigationControls() {
   const navigate = useNavigate();
   return (
     <>
-      <button onClick={() => navigate("/market")}>go-apps</button>
+      <button onClick={() => navigate("/market?tab=apps")}>go-apps</button>
       <button onClick={() => navigate("/market?tab=plugins")}>
         go-plugins
       </button>
@@ -93,8 +93,13 @@ function renderMarketplace(initialEntry: string, withNavigation = false) {
 }
 
 describe("MarketplacePage", () => {
-  it("shows apps by default", () => {
+  it("redirects bare /market to the org skill shelf", () => {
     renderMarketplace("/market");
+    expect(screen.getByText("skills-content")).toBeInTheDocument();
+  });
+
+  it("shows apps when tab=apps", () => {
+    renderMarketplace("/market?tab=apps");
     expect(screen.getByText("apps-content")).toBeInTheDocument();
   });
 

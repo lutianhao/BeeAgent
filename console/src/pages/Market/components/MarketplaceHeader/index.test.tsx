@@ -73,11 +73,13 @@ describe("MarketplaceHeader", () => {
 
     fireEvent.click(screen.getByText("Skills"));
     expect(screen.getByTestId("location")).toHaveTextContent(
-      "/market?tab=skills",
+      "/market?tab=skills&source=beeagent-org",
     );
 
     fireEvent.click(screen.getByText("Apps"));
-    expect(screen.getByTestId("location")).toHaveTextContent("/market");
+    expect(screen.getByTestId("location")).toHaveTextContent(
+      "/market?tab=apps",
+    );
   });
 
   it("preserves the skill install destination while switching tabs", () => {
@@ -96,7 +98,7 @@ describe("MarketplaceHeader", () => {
 
     fireEvent.click(screen.getByText("Skills"));
     expect(screen.getByTestId("location")).toHaveTextContent(
-      "/market?tab=skills&target=pool",
+      "/market?tab=skills&source=beeagent-org&target=pool",
     );
   });
 });

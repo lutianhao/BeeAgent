@@ -58,6 +58,7 @@ const DebugPage = lazyImportWithRetry("../../pages/Settings/Debug");
 const BackupsPage = lazyImportWithRetry("../../pages/Settings/Backups");
 const AppCenterPage = lazyImportWithRetry("../../pages/AppCenter");
 const MarketplacePage = lazyImportWithRetry("../../pages/Market");
+const KnowledgeBasePage = lazyImportWithRetry("../../pages/KnowledgeBase");
 const FilesPage = lazyImportWithRetry("../../pages/Files");
 const ImportPage = lazyImportWithRetry("../../pages/Import");
 const SettingsCenterPage = lazyImportWithRetry("../../pages/SettingsCenter");
@@ -383,6 +384,17 @@ export const BUILTIN_ROUTES: Route[] = [
     path: "/market",
     component: MarketplacePage,
     meta: routeMeta("nav.marketplace", "Extension", "extensions", "global"),
+  },
+  {
+    id: "core.knowledge-base",
+    path: "/knowledge-base",
+    component: KnowledgeBasePage,
+    meta: routeMeta(
+      "nav.knowledgeBase",
+      "Knowledge Base",
+      "extensions",
+      "global",
+    ),
   },
   {
     id: "core.import",

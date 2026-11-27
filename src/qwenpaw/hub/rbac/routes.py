@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field
 
 from . import store
 from .catalog import BUILTIN_ROLES, OFFICIAL_SKILLS, OFFICIAL_TOOLS
+from .console_profile import build_console_profile
 from .service import RbacService
 
 
@@ -58,6 +59,15 @@ def rbac_router(
     def my_entitlements(user=Depends(require_user)) -> dict[str, Any]:
         return rbac.entitlements(user.user_id, is_hub_admin=user.is_admin)
 
+    @router.get("/api/hub/me/console-profile")
+    def my_console_profile(user=Depends(require_user)) -> dict[str, Any]:
+        """Session profile for Console nav/feature rendering (not write authz)."""
+        ent = rbac.entitlements(user.user_id, is_hub_admin=user.is_admin)
+        return build_console_profile(
+            ent,
+            username=str(getattr(user, "username", "") or ""),
+        )
+
     @router.get("/api/hub/rbac/catalog")
     def permission_catalog(user=Depends(require_user)) -> dict[str, Any]:
         _ = user
@@ -72,6 +82,12 @@ def rbac_router(
                 "tool:use",
                 "tool:use:*",
                 "tool:use:web_search",
+                "tool:use:kb_search",
+                "org_kb:use",
+                "org_kb:write",
+                "org_kb:manage",
+                "org_skill:publish",
+                "org_skill:manage",
                 "rbac:manage",
                 "quota:bypass",
             ],

@@ -195,6 +195,32 @@ def _ensure_tool_entry(
         elif name == "web_fetch":
             entry["description"] = "Fetch and read content from a URL"
             entry["icon"] = "📥"
+        elif name == "kb_search":
+            entry["description"] = (
+                "Search organization knowledge bases (口径/案例/模板)"
+            )
+            entry["icon"] = "📚"
+        elif name == "org_skill_publish":
+            entry["description"] = (
+                "Publish a local skill directory to the org skill market"
+            )
+            entry["icon"] = "📤"
+        elif name == "org_skill_install":
+            entry["description"] = (
+                "Install an organization market skill into this runtime"
+            )
+            entry["icon"] = "📥"
+        elif name == "org_skill_pin":
+            entry["description"] = "Pin or unpin an installed org skill version"
+            entry["icon"] = "📌"
+        elif name == "org_skill_list":
+            entry["description"] = "List organization skill market entries"
+            entry["icon"] = "🗂️"
+        elif name == "skill_set_enabled":
+            entry["description"] = (
+                "Enable or disable a skill in this agent workspace"
+            )
+            entry["icon"] = "🔀"
         builtin[name] = entry
         changed = True
     if entry.get("enabled") != enabled:
@@ -216,8 +242,10 @@ def ensure_tool_defaults(
     *,
     enable_web_search: bool = True,
     enable_web_fetch: bool = True,
+    enable_kb_search: bool = True,
+    enable_org_skill_ops: bool = True,
 ) -> int:
-    """Ensure web_search/web_fetch exist and use DeepSeek where applicable."""
+    """Ensure web_search/web_fetch/kb_search/org skill ops tools exist."""
     changed = 0
     working = Path(working_dir)
     targets: list[Path] = []
@@ -256,6 +284,27 @@ def ensure_tool_defaults(
             provider=None,
         ):
             local += 1
+        if _ensure_tool_entry(
+            builtin,
+            "kb_search",
+            enabled=enable_kb_search,
+            provider=None,
+        ):
+            local += 1
+        for tool_name in (
+            "org_skill_publish",
+            "org_skill_install",
+            "org_skill_pin",
+            "org_skill_list",
+            "skill_set_enabled",
+        ):
+            if _ensure_tool_entry(
+                builtin,
+                tool_name,
+                enabled=enable_org_skill_ops,
+                provider=None,
+            ):
+                local += 1
         if local:
             path.write_text(
                 json.dumps(data, ensure_ascii=False, indent=2) + "\n",
